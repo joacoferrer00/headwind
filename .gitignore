@@ -1,0 +1,26 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+
+# dbt
+target/
+dbt_packages/
+logs/
+.user.yml
+
+# data
+data/raw/
+data/staging/
+*.parquet
+*.csv
+!data/reference/*.csv
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code local settings
+.claude/settings.local.json

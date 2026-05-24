@@ -1,0 +1,13 @@
+dbt-core==1.10.*
+dbt-bigquery==1.10.*
+
+google-cloud-storage
+google-cloud-bigquery
+pyarrow
+pandas
+requests
+python-dotenv
+
+sqlfluff
+sqlfluff-templater-dbt
+pre-commit
