@@ -8,6 +8,8 @@ Companion docs (read these for detail):
   milestones, immediate next steps.
 - [PIPELINE.md](PIPELINE.md) — full end-to-end architecture, every layer explained,
   cost design, locked assumptions, extras.
+- [CONVENTIONS.md](CONVENTIONS.md) — SQL (dbt) and Python writing conventions. Binding
+  for all code generated here.
 
 ---
 
@@ -31,10 +33,20 @@ Companion docs (read these for detail):
   pyarrow, pandas, requests, sqlfluff, pre-commit.
 - `.gitignore` and `.vscode/settings.json` configured (interpreter points at `.venv`).
 - dbt Power User extension (Innoverio) installed in VS Code.
-- Google Cloud SDK installed, `gcloud init` run, authenticated as `joacoferrer00@gmail.com`.
-- GCP project exists: **`headwind-497302`**.
+- Google Cloud SDK installed, authenticated as `joacoferrer00@gmail.com`, ADC in place.
+- GCP project: **`headwind-497302`**.
+- GCS landing bucket `gs://headwind-497302-raw` (EU) created.
+- BigQuery dataset `headwind_raw` (EU) created.
+- dbt project at `headwind_dbt/`, `~/.dbt/profiles.yml` configured, `dbt debug` passes.
 
 **Immediate next steps** live in [PLANNING.md](PLANNING.md#immediate-next-steps).
+
+**Project skills** (`.claude/skills/`): `/new-model`, `/dry-run`, `/dbt-check`,
+`/ingest-source`, `/readme-killer`.
+
+**Known gotcha (fixed):** the `bq` CLI looked for a missing `python3.14`. A persistent
+user env var `CLOUDSDK_PYTHON` now points at the SDK's bundled python, so new shells
+work. `gcloud` and `dbt` were never affected.
 
 ---
 

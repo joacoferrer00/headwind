@@ -105,15 +105,20 @@ weather correlation."*
 
 ## Immediate next steps
 
-1. Finish `gcloud init` → select project `[4] headwind-497302`.
-2. Set a **billing alert at $1 USD** in GCP before anything else.
-3. `gcloud auth application-default login` (creates the credentials dbt will use; this is
-   different from the normal login).
-4. Create the GCS landing bucket (e.g. `headwind-497302-raw`).
-5. Create the initial BigQuery dataset (e.g. `headwind_raw`, location `EU`).
-6. `dbt init headwind_dbt` inside the repo, configure `~/.dbt/profiles.yml` to point at
-   the project.
-7. `dbt debug` → "All checks passed" means setup is complete.
+Foundation (milestone 1) is done:
+- ✅ gcloud project set to `headwind-497302`, ADC credentials in place.
+- ✅ GCS landing bucket `gs://headwind-497302-raw` (EU, uniform access).
+- ✅ BigQuery dataset `headwind_raw` (EU).
+- ✅ dbt project at `headwind_dbt/` with medallion layer config (staging/intermediate/
+  marts) and folders. `~/.dbt/profiles.yml` set (oauth, EU, `maximum_bytes_billed` cap).
+  `dbt debug` and `dbt parse` pass.
+- ✅ Billing budget set ($1, project Headwind, 50/90/100% alerts).
+- ✅ Writing conventions ([CONVENTIONS.md](CONVENTIONS.md)) and project skills in place.
+
+Open before going hands-on with data:
+1. Register for an OpenSky account (flights API needs basic auth).
+2. Start ingestion (milestone 2): first Python script for one source, one day, to GCS.
+   Tooling to wire alongside: `.sqlfluff`, `ruff`/`pyproject.toml`, `.pre-commit-config.yaml`.
 
 ---
 
