@@ -41,26 +41,32 @@ and typed (silver) → business-ready aggregates (gold). In dbt terms that maps 
 
 ## 2. Layer by layer
 
-### 2.1 Ingestion — Python scripts
+### 2.1 Ingestion — two patterns
 
-**What it is:** standalone Python scripts that call the source APIs, page through the
-responses, respect rate limits, and write the results to GCS as Parquet files.
+The project has two ingestion patterns, each suited to its source.
 
-**Why Python and not a managed connector (Fivetran, Airbyte):** the sources here are
-niche public APIs (OpenSky, Open-Meteo). Writing the ingest by hand shows you can deal
-with pagination, backoff, retries, and checkpointing. That is a real Analytics
-Engineering skill, and managed connectors would hide it.
+**Pattern A: bulk one-shot download (flights + reference data).** The Zenodo COVID-19
+Flight Dataset, OurAirports and OpenFlights are static, hosted as files. We download
+them once with Python, normalize to Parquet where useful, and upload to GCS. No
+pagination, no backoff, no rate limits. The script is small (download → optional
+transform → upload). Re-running it overwrites the date partition.
 
-**Key concerns the scripts handle:**
-- **Pagination:** APIs return data in chunks. The script loops until there is no more.
-- **Rate limits:** OpenSky is aggressive on the free tier. We add exponential backoff
-  (wait longer after each failure) and persist a checkpoint (last timestamp fetched)
-  so a crashed run resumes instead of restarting.
-- **Idempotency:** re-running a day should overwrite that day's file, not duplicate it.
-  Partitioning the output by date (see Landing) makes this clean.
+**Pattern B: paginated API pull (weather).** Open-Meteo is queried per airport, per
+day, across the 4-year window. The script handles:
+- **Pagination:** each request returns one airport-day; the loop iterates over the
+  airport × date grid.
+- **Rate limits:** exponential backoff on 429/5xx; respect `Retry-After`.
+- **Checkpoint:** persist the last (airport, date) successfully fetched so a crashed
+  run resumes instead of refetching from scratch.
+- **Idempotency:** re-running a date overwrites its Parquet partition, never appends.
 
-**Output format — Parquet:** columnar, compressed, typed. Much cheaper to store and
-faster to scan than CSV/JSON, and BigQuery reads it natively.
+**Why Python and not a managed connector (Fivetran, Airbyte):** the sources are niche
+public datasets and APIs. Writing the ingest by hand shows the skills that matter for
+Analytics Engineering (pagination, backoff, checkpointing, idempotent writes), which
+managed connectors hide.
+
+**Output format — Parquet:** columnar, compressed, typed. Cheaper to store and faster
+to scan than CSV/JSON, and BigQuery reads it natively.
 
 ### 2.2 Landing — GCS (bronze layer)
 
@@ -150,18 +156,20 @@ testing is a strong signal.
 the dependency graph, including an interactive **lineage DAG**. We publish it to GitHub
 Pages so a recruiter can click through the model graph in a browser. Free and navigable.
 
-### 2.7 Orchestration — GitHub Actions (daily cron)
+### 2.7 Orchestration — GitHub Actions (CI)
 
-**What it is:** GitHub's built-in CI/CD. We define workflows (YAML in `.github/workflows/`)
-that run on two triggers:
-- **On pull request:** run `dbt build` (models + tests) against a CI dataset so broken SQL
-  never reaches main.
-- **On a daily schedule (cron):** run the ingest scripts, then `dbt build` against prod,
-  then publish the docs.
+**What it is:** GitHub's built-in CI/CD. Workflows live in `.github/workflows/` and run
+on:
+- **Pull request:** `dbt build` (models + tests) against a CI dataset, so broken SQL
+  never reaches `main`.
+- **Push to main:** rebuild the dbt docs site and publish to GitHub Pages.
 
-**Why not Airflow/Dagster:** those are heavy orchestrators meant for large teams and
-complex DAGs. For a daily batch of two sources, GitHub Actions is enough and keeps the
-whole project in one place. Reaching for Airflow here would be over-engineering.
+Because the flight dataset is frozen at December 2022, there is no scheduled ingestion
+job. The historical load runs once, manually, and is then a static input to dbt.
+
+**Why not Airflow/Dagster:** those are heavy orchestrators meant for teams and complex
+DAGs. For a CI-only workflow on a one-shot historical load, GitHub Actions is enough and
+keeps everything in one place. Airflow here would be over-engineering.
 
 ### 2.8 Linting — sqlfluff + pre-commit hooks
 
@@ -197,21 +205,25 @@ plain SQL in the marts. Not on the critical path.
 
 ## 3. Data flow end to end
 
-1. **Ingest.** Python scripts hit OpenSky (flights) and Open-Meteo (weather), page
-   through, back off on rate limits, checkpoint progress.
-2. **Land.** Scripts write Parquet to `gs://headwind-497302-raw/<source>/dt=YYYY-MM-DD/`.
-   One-shot reference data (OurAirports, OpenFlights CSVs) loads once.
-3. **Load to raw.** `bq load` (or external tables) brings the Parquet into the BigQuery
-   `raw` dataset, partitioned by date.
-4. **Stage.** dbt `stg_` models clean and type each raw table (views).
-5. **Build intermediate.** dbt joins flights to weather and builds delay-cascade logic.
+1. **Ingest — flights (Zenodo).** Download monthly Zenodo CSVs for 2019-01 to 2022-12,
+   convert to Parquet, upload to `gs://headwind-497302-raw/zenodo_flights/dt=YYYY-MM-DD/`.
+2. **Ingest — weather (Open-Meteo).** Python script pulls hourly weather for each of
+   the 20 hub airports across the 4-year window, with backoff and checkpoint. Lands at
+   `gs://headwind-497302-raw/openmeteo/dt=YYYY-MM-DD/`.
+3. **Ingest — reference (one-shot).** OurAirports and OpenFlights CSVs uploaded to GCS,
+   loaded directly into `headwind_raw` with `bq load`.
+4. **Load to raw.** `bq load` brings Parquet from GCS into `headwind_raw`, partitioned
+   by date.
+5. **Stage.** dbt `stg_` models clean and type each raw table (views).
+6. **Build intermediate.** dbt joins flights to weather and computes traffic baselines.
    `int_flights_with_weather` is the technical centerpiece (temporal + spatial join).
-6. **Build marts.** dbt produces `mart_hub_resilience`, `mart_route_risk`,
-   `mart_airline_performance`, partitioned and clustered.
-7. **Test.** Generic + singular + dbt-expectations tests run as part of `dbt build`.
-8. **Document.** `dbt docs generate` builds the lineage site, published to GitHub Pages.
-9. **Serve.** Evidence.dev reads the marts and renders the dashboard.
-10. **Orchestrate.** GitHub Actions runs steps 1 to 9 on PRs (CI) and on a daily cron.
+7. **Build marts.** dbt produces `mart_hub_resilience`, `mart_hub_recovery`,
+   `mart_route_risk`, `mart_airline_performance`, partitioned and clustered.
+8. **Test.** Generic + singular + dbt-expectations tests run as part of `dbt build`.
+9. **Document.** `dbt docs generate` builds the lineage site, published to GitHub Pages.
+10. **Serve.** Evidence.dev reads the marts and renders the dashboard.
+11. **Orchestrate.** GitHub Actions runs the dbt build + tests on PRs (CI). Since the
+    flight dataset is frozen, there is no daily ingest job in production.
 
 ---
 
@@ -236,23 +248,25 @@ a service-account JSON to the repo.
 
 ## 5. Locked assumptions
 
-These were open questions in the original plan. Now decided:
-
 | # | Decision | Choice |
 |---|----------|--------|
-| 1 | Airport scope | Top 20 EU hubs to start, expand if time allows |
-| 2 | Time window | 2 years (enables year-over-year seasonal comparison) |
-| 3 | Refresh cadence | Daily incremental (most demonstrable for the role) |
-| 4 | Metric layer | dbt semantic layer only if time allows; else metrics in marts SQL |
-| 5 | Dashboard | Evidence.dev (code-first, more differentiating than Looker Studio) |
-| 6 | CI/CD scope | Full: `dbt build` on PR + docs deploy + scheduled prod runs |
-| 7 | Flight pricing | Out of scope (phase 2, avoid scope creep) |
+| 1 | Airport scope | Top 20 EU hubs by 2019 traffic |
+| 2 | Time window | 1 Jan 2019 to 31 Dec 2022 (4 years, pre-shock + collapse + recovery) |
+| 3 | Flight source | OpenSky COVID-19 Flight Dataset (Zenodo, CC-BY) |
+| 4 | Refresh cadence | One-shot historical load (dataset is frozen at Dec 2022) |
+| 5 | Metric layer | dbt semantic layer only if time allows; else metrics in marts SQL |
+| 6 | Dashboard | Evidence.dev (code-first, version-controlled) |
+| 7 | CI/CD scope | `dbt build` + tests on PR, docs deploy on merge to main |
 
 ---
 
 ## 6. Extras (only if the core is solid)
 
-- dbt semantic layer (assumption #4).
-- Eurocontrol public dashboards as a cross-validation source for the marts.
-- SCD Type 2 on `dim_airport` (capacity/runways change over time).
-- Flight pricing scraping as a phase-2 route-analysis extension.
+- **OWID Government Response Tracker** as a stretch source: daily stringency index per
+  country to weight the shock by actual policy strictness, instead of using a flat
+  pandemic-phase dimension.
+- **dbt semantic layer** for consistent metric definitions (assumption #5).
+- **SCD Type 2 on `dim_airport`** (capacity/runways can change over time).
+- **Extensible to live data via OpenSky Trino.** The Zenodo dataset is frozen at Dec 2022;
+  refreshing 2023 onward would mean writing a Trino client against the OpenSky historical
+  warehouse. Documented as future work in the README, not built here.

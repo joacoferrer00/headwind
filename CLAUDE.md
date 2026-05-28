@@ -73,12 +73,13 @@ Full reasoning in [PIPELINE.md](PIPELINE.md#4-cost-design--paranoia-mode).
 - Billing: https://console.cloud.google.com/billing
 - IAM: https://console.cloud.google.com/iam-admin/iam?project=headwind-497302
 
-## Data source APIs
+## Data sources
 
-- OpenSky Network (flights, free, requires signup): https://opensky-network.org/
+- OpenSky COVID-19 Flight Dataset (flights, Zenodo, CC-BY): https://doi.org/10.5281/zenodo.3931948
 - Open-Meteo Historical (weather, free, no auth): https://open-meteo.com/en/docs/historical-weather-api
 - OurAirports (one-shot CSV): https://ourairports.com/data/
 - OpenFlights (one-shot datasets): https://openflights.org/data.html
+- *(Stretch)* Our World in Data COVID-19 dataset (policy stringency): https://github.com/owid/covid-19-data
 
 ## Training references
 
