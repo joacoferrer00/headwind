@@ -41,8 +41,8 @@ Companion docs (read these for detail):
 
 **Immediate next steps** live in [PLANNING.md](PLANNING.md#immediate-next-steps).
 
-**Project skills** (`.claude/skills/`): `/new-model`, `/dry-run`, `/dbt-check`,
-`/ingest-source`, `/readme-killer`.
+**Project commands** (`.claude/commands/`): none yet (will add headwind-specific ones when work
+starts). Useful global skills here: `/plan`, `/implement`, `/polish`, `/update-docs`, `/sql-evidence`.
 
 **Known gotcha (fixed):** the `bq` CLI looked for a missing `python3.14`. A persistent
 user env var `CLOUDSDK_PYTHON` now points at the SDK's bundled python, so new shells
