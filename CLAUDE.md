@@ -35,21 +35,43 @@ SQL; he steers the agent that writes it.
 
 ## Current state (2026-06-12)
 
-Phase 1 (foundation) and Phase 2.1 (tooling) are done. Phase 2.2 (Zenodo download) is
-running in background (`scripts/ingest_zenodo_flights.py`, idempotent, resumable). Phase 2.3
-(reference data) is done: OurAirports + OpenFlights loaded to `headwind_raw`. Phase 3.1
-(sources.yml) and the three reference staging models are green. Next concrete steps: wait for
-2.2 to finish (48 Parquet partitions in GCS), then run 2.4 (`scripts/load_flights_to_bq.py`),
-then 2.5 (top-20 hub seed), 2.6 (weather pull), and complete Phase 3 staging.
+Phases 1-3 fully built and committed. All models materialize in BigQuery (`dbt_dev`
+dataset). 79/79 dbt tests pass. SQLFluff violations resolved (AL03/RF02/RF04/LT05 fixed
+in the model files) and the pre-commit hook now lints via the dbt templater from the
+project venv, so the whole pipeline commits cleanly.
+
+Next step: Phase 4 (Quality tests). See the plan in [PLANNING.md](PLANNING.md).
 
 Full phase breakdown in [PLANNING.md](PLANNING.md) (the north for `/implement`).
 
 **Project commands** (`.claude/commands/`): none yet. Useful global skills: `/plan`,
 `/implement`, `/polish`, `/update-docs`, `/sql-evidence`.
 
-**Known gotcha (fixed):** the `bq` CLI looked for a missing `python3.14`. A persistent
-user env var `CLOUDSDK_PYTHON` now points at the SDK's bundled python, so new shells
-work. `gcloud` and `dbt` were never affected.
+**Known gotchas (all resolved):**
+
+- `bq` CLI missing `python3.14`: fixed via `CLOUDSDK_PYTHON` env var pointing at the
+  SDK's bundled python.
+- `day` column in raw flights is STRING, format `'YYYY-MM-DD HH:MM:SS+00:00'`. Parse
+  with `parse_date('%Y-%m-%d', substr(day, 1, 10))`. Cannot partition the raw table on
+  it; partitioning is done in `stg_opensky__flights` on `flight_date` (DATE).
+- `firstseen` / `lastseen` in flights are Unix **milliseconds** (not seconds). Use
+  `safe.timestamp_millis()`. Duration = `(lastseen - firstseen) / 60000.0` minutes.
+- Weather `obs_time` from pyarrow is INT64 **nanoseconds**. Use
+  `timestamp_micros(cast(obs_time / 1000 as int64))`.
+- GCS folders with `=` in the path break BigQuery wildcard loads. Pass explicit URI list
+  instead of a wildcard for `headwind_raw.weather`.
+- OpenFlights has 36 duplicate airline ICAO codes. `dim_airline` deduplicates via
+  `row_number()` keeping lowest `airline_id`.
+- Raw Parquet flights contain exact-duplicate rows. `stg_opensky__flights` deduplicates
+  with `QUALIFY row_number() over (partition by callsign, flight_date, first_seen_at ...) = 1`.
+- `maximum_bytes_billed` in `~/.dbt/profiles.yml` is **5 GB** (not 1 GB). Uniqueness
+  tests on the 117M-row flights table scan ~4 GB; 1 GB cap breaks them. Rebuilding
+  `int_flights_with_weather` needs ~12 GB -- raise to 20 GB temporarily for that step.
+- The pre-commit SQLFluff hook is `repo: local` (`language: system`) and uses the **dbt
+  templater**, so it needs the project venv on PATH: commit from the activated venv. The
+  upstream sqlfluff hook's isolated env cannot resolve dbt's namespace packages
+  (`cannot import name 'flags' from 'dbt'`), so the jinja templater false-positived on
+  `dbt_utils` (TMP/PRS). The dbt templater also needs ADC creds at lint time.
 
 ---
 

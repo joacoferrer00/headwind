@@ -141,11 +141,11 @@ decisions and must be respected by any model built here:
 
 ## Plan (executable, dependency-ordered)
 
-The manual for `/implement`. Phase 1 done. Phase 2 in progress (2.1 + 2.3 done, 2.2
-running in background, 2.4-2.6 pending). Phase 3 partial (3.1 + reference staging done).
-Phases 3-6 are the runway. Phase 7 is optional. Hard constraints: BigQuery cost rules
-(partition + cluster every table, `maximum_bytes_billed` cap), conventions in
-[CONVENTIONS.md](CONVENTIONS.md), no service-account JSON committed to the repo.
+The manual for `/implement`. Phases 1-3 done and committed (79/79 tests green in
+BigQuery). Phase 4 is next.
+Hard constraints: BigQuery cost rules (partition + cluster every table,
+`maximum_bytes_billed` cap), conventions in [CONVENTIONS.md](CONVENTIONS.md), no
+service-account JSON committed to the repo.
 
 ### Phase 1 — Foundation (DONE)
 GCP project `headwind-497302` + ADC, GCS bucket `gs://headwind-497302-raw` (EU), BigQuery
@@ -153,57 +153,39 @@ dataset `headwind_raw` (EU), dbt project at `headwind_dbt/` (medallion config,
 `~/.dbt/profiles.yml` target `dev`, EU, `maximum_bytes_billed` cap, `dbt debug`/`dbt parse`
 pass), $1 billing budget, conventions and project skills. Remote: `github.com/joacoferrer00/headwind`.
 
-### Phase 2 — Tooling + ingestion to raw
+### Phase 2 — Tooling + ingestion to raw (DONE)
 - [x] 2.1 Repo tooling: `.sqlfluff`, `pyproject.toml` (ruff), `.pre-commit-config.yaml`,
-  `packages.yml` (dbt_utils + dbt_expectations + codegen). Pre-commit + dbt parse passing.
-- [ ] 2.2 Download flights (Zenodo): `scripts/ingest_zenodo_flights.py` written and running.
-  Idempotent per GCS partition. **In progress as of 2026-06-12; run is resumable.**
-  Done when: 48 Parquet partitions at `gs://headwind-497302-raw/zenodo_flights/dt=*/`.
+  `packages.yml` (dbt_utils + dbt_expectations + codegen).
+- [x] 2.2 Download flights (Zenodo): 48 Parquet partitions at
+  `gs://headwind-497302-raw/zenodo_flights/dt=*/data.parquet` (117M rows, 15.5 GB).
 - [x] 2.3 Reference data: OurAirports (85,569 airports), OpenFlights airlines (6,162) +
   routes (67,663) loaded to `headwind_raw`.
-2.4 **Load flights to raw.**
-   - What: `bq load` the Parquet into `headwind_raw.flights`, partitioned by `day`.
-   - Done when: table partitioned by date, row count matches source order of magnitude.
-   - Depends on: 2.2.
-2.5 **Pick and freeze the top-20 EU hubs.**
-   - What: query 2019 flights, rank airports by total observed movements (non-null origin
-     + destination), join `ourairports_airports` for country, filter to EU scope, take
-     top 20. Write the result to `headwind_dbt/seeds/seed_top_hubs.csv`
-     (`airport_icao, iata, name, country, latitude, longitude`).
-   - How: EU scope default = EU-27 + UK + CH + NO (keeps LHR, ZRH, OSL in play). Freezing
-     the list as a seed makes every downstream step deterministic and reproducible.
-   - Done when: `seed_top_hubs.csv` committed with 20 rows, `dbt seed` loads it.
-   - Depends on: 2.3, 2.4.
-2.6 **Pull weather (Open-Meteo).**
-   - What: Python script, one request per hub for the full 2019-2022 hourly window (chunk
-     by year only if a response is too large), variables: temperature_2m,
-     relative_humidity_2m, wind_speed_10m, wind_gusts_10m, wind_direction_10m,
-     precipitation, rain, snowfall, snow_depth, cloud_cover, surface_pressure. Parquet to
-     `gs://headwind-497302-raw/openmeteo/dt=YYYY-MM-01/`, then `bq load` to
-     `headwind_raw.weather` partitioned by date.
-   - Done when: raw weather table covers 20 airports x ~35k hourly rows each.
-   - Depends on: 2.5 (needs the locked hub lat/long).
+- [x] 2.4 Flights loaded to `headwind_raw.flights` via `scripts/load_flights_to_bq.py`.
+  Raw table is **unpartitioned** (`day` column is STRING, cannot partition on it;
+  partitioning deferred to `stg_opensky__flights`).
+- [x] 2.5 Top-20 EU hub seed: `headwind_dbt/seeds/seed_top_hubs.csv` (20 rows). Top 5:
+  EGLL, EDDF, LFPG, EHAM, LEMD. Built via `scripts/build_top_hubs_seed.py`.
+- [x] 2.6 Weather pulled (Open-Meteo, 80 Parquet files) to
+  `gs://headwind-497302-raw/openmeteo/dt=YYYY-01-01/ICAO.parquet`, loaded to
+  `headwind_raw.weather` via `scripts/load_weather_to_bq.py` (explicit URI list, not
+  wildcard -- GCS folders with `=` break BQ wildcards).
 
-### Phase 3 — Modeling (staging to marts)
-- [x] 3.1 Sources: `sources.yml` in `models/staging/`, all 4 raw tables declared,
-  freshness checks off.
-- [ ] 3.2 Staging (`stg_`, views): airports + airlines + routes green (18/18 tests pass).
-  `stg_opensky__flights` and `stg_openmeteo__weather` pending `headwind_raw.flights`
-  (waits on 2.4). Done when: `dbt build --select staging` fully green.
-3.3 **Dimensions:** `dim_airport` (hubs flagged), `dim_airline`, `dim_aircraft` (by
-   `icao24`/registration), `dim_date` (dbt_utils date spine 2019-2022),
-   `dim_weather_event` (clear/windy/snow/fog/storm, derived; fog proxied per data
-   realities), `dim_pandemic_phase` (pre-shock 2019 / collapse Q2 2020 / restricted
-   2020-2021 / recovery 2022, as a seed or case logic).
-3.4 **Intermediate** (`int_`, the centerpiece): `int_traffic_baselines` (2019 per-hub
-   baseline = denominator for recovery), `int_flights_with_weather` (join each flight to
-   the hourly weather at its origin and destination hub on the matching `date_hour`;
-   handle null endpoints). Join is hourly (weather grain), not a ±30 min window.
-   - Done when: `dbt build --select intermediate` passes; spot-check row counts.
-3.5 **Marts** (`mart_`, tables, partitioned + clustered): `mart_hub_resilience`,
-   `mart_hub_recovery`, `mart_route_risk`, `mart_airline_performance`.
-   - Done when: `dbt build --select marts` passes; each mart answers its business question.
-   - Depends on: 3.1-3.4.
+### Phase 3 — Modeling (staging to marts) (DONE)
+- [x] 3.1 Sources: `sources.yml` declares all 4 raw tables.
+- [x] 3.2 Staging: all 5 models green (28/28 tests). Key models: `stg_opensky__flights`
+  (117M rows, materialized TABLE, dedup via QUALIFY, `safe.timestamp_millis()` for
+  firstseen/lastseen) and `stg_openmeteo__weather` (`timestamp_micros(cast(obs_time/1000
+  as int64))` for INT64 nanosecond obs_time).
+- [x] 3.3 Dimensions: `dim_airport` (hubs flagged), `dim_airline` (dedup 36 duplicate
+  ICAO codes), `dim_aircraft` (most common registration per icao24), `dim_date` (date
+  spine 2019-2022), `dim_weather_event` (5-row static lookup), `dim_pandemic_phase`
+  (4-row static lookup: pre_shock / collapse / restricted / recovery).
+- [x] 3.4 Intermediate: `int_traffic_baselines` (240 rows: 20 hubs x 12 months, 2019
+  baseline), `int_flights_with_weather` (13M rows, hub-touching flights joined to hourly
+  weather at origin+destination).
+- [x] 3.5 Marts: `mart_hub_resilience` (3,200 rows), `mart_hub_recovery` (960 rows),
+  `mart_route_risk` (9,000 rows), `mart_airline_performance` (53,700 rows). All pass
+  tests. **79/79 total dbt tests green.**
 
 ### Phase 4 — Quality
 4.1 Generic tests: PK `not_null`/`unique` on every model, `relationships` on FKs
