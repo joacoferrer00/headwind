@@ -6,11 +6,18 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
 
-  - repo: https://github.com/sqlfluff/sqlfluff
-    rev: 4.2.1
+  # Local hook running sqlfluff from the project venv (must be on PATH, i.e. commit
+  # from the activated venv). The dbt templater (set in .sqlfluff) needs dbt-bigquery
+  # + the project's dbt_packages; the upstream hook's isolated env cannot resolve dbt's
+  # namespace packages, so we reuse the working project environment instead.
+  - repo: local
     hooks:
       - id: sqlfluff-lint
-        args: [--dialect, bigquery, --templater, jinja]
+        name: sqlfluff lint (dbt templater)
+        entry: sqlfluff lint
+        language: system
+        types: [sql]
+        pass_filenames: true
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.17
