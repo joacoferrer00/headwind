@@ -51,14 +51,14 @@ them once with Python, normalize to Parquet where useful, and upload to GCS. No
 pagination, no backoff, no rate limits. The script is small (download → optional
 transform → upload). Re-running it overwrites the date partition.
 
-**Pattern B: paginated API pull (weather).** Open-Meteo is queried per airport, per
-day, across the 4-year window. The script handles:
-- **Pagination:** each request returns one airport-day; the loop iterates over the
-  airport × date grid.
-- **Rate limits:** exponential backoff on 429/5xx; respect `Retry-After`.
-- **Checkpoint:** persist the last (airport, date) successfully fetched so a crashed
-  run resumes instead of refetching from scratch.
-- **Idempotency:** re-running a date overwrites its Parquet partition, never appends.
+**Pattern B: bulk API pull (weather).** Open-Meteo returns the full multi-year hourly
+range for one lat/long in a single request, so the weather pull is ~20 requests (one per
+hub, chunked by year only if a response is unwieldy), not a per-airport-day crawl. The
+script handles:
+- **Backoff:** exponential backoff on 429/5xx; respect `Retry-After` (cheap insurance,
+  though the request volume is tiny).
+- **Idempotency:** re-running a hub/year overwrites its Parquet partition, never appends.
+- **Checkpoint:** at this volume a checkpoint is optional; a failed hub simply re-runs.
 
 **Why Python and not a managed connector (Fivetran, Airbyte):** the sources are niche
 public datasets and APIs. Writing the ingest by hand shows the skills that matter for
@@ -208,8 +208,8 @@ plain SQL in the marts. Not on the critical path.
 1. **Ingest — flights (Zenodo).** Download monthly Zenodo CSVs for 2019-01 to 2022-12,
    convert to Parquet, upload to `gs://headwind-497302-raw/zenodo_flights/dt=YYYY-MM-DD/`.
 2. **Ingest — weather (Open-Meteo).** Python script pulls hourly weather for each of
-   the 20 hub airports across the 4-year window, with backoff and checkpoint. Lands at
-   `gs://headwind-497302-raw/openmeteo/dt=YYYY-MM-DD/`.
+   the 20 hub airports across the 4-year window (~20 requests, one per hub). Lands at
+   `gs://headwind-497302-raw/openmeteo/dt=YYYY-MM-01/`.
 3. **Ingest — reference (one-shot).** OurAirports and OpenFlights CSVs uploaded to GCS,
    loaded directly into `headwind_raw` with `bq load`.
 4. **Load to raw.** `bq load` brings Parquet from GCS into `headwind_raw`, partitioned

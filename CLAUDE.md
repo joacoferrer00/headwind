@@ -15,31 +15,30 @@ Companion docs (read these for detail):
 
 ## How we work on this project
 
+This is a **portfolio deliverable**, not a study exercise. The goal is to ship a complete,
+credible end-to-end dbt pipeline that proves Joaquin can stand up a dbt + BigQuery project,
+then close it and move on. The differentiator on display is **orchestration**: Joaquin
+drives Claude Code to build, test, and document the whole thing, ideally running
+`/implement` with as much autonomy as the planning allows. He does not read every line of
+SQL; he steers the agent that writes it.
+
 - **All `.md` files in English, always.** No exceptions.
 - **No em-dashes (—)** anywhere: responses, code, commits, file content. Use commas,
   periods, colons, parentheses.
-- Joaquin is **not an expert in dbt/BigQuery yet.** Explain the "why" behind technical
-  decisions, not just the "what". This is a learning project as much as a delivery one.
-- Pragmatism over elegance. If it works, we move on.
+- **Optimize for autonomous execution.** Make decisions and keep moving; surface blockers
+  only when a choice genuinely changes the outcome. Do not stop to teach dbt/BigQuery
+  basics unless asked.
+- Pragmatism over elegance. If it works, we ship and move on.
 - Short answers by default. He will ask for more detail if he wants it.
 
 ---
 
-## Current state (2026-05-27)
+## Current state (2026-06-12)
 
-**Done:**
-- `.venv/` with Python 3.11.
-- `requirements.txt`: dbt-core 1.10, dbt-bigquery 1.10, google-cloud-storage/bigquery,
-  pyarrow, pandas, requests, sqlfluff, pre-commit.
-- `.gitignore` and `.vscode/settings.json` configured (interpreter points at `.venv`).
-- dbt Power User extension (Innoverio) installed in VS Code.
-- Google Cloud SDK installed, authenticated as `joacoferrer00@gmail.com`, ADC in place.
-- GCP project: **`headwind-497302`**.
-- GCS landing bucket `gs://headwind-497302-raw` (EU) created.
-- BigQuery dataset `headwind_raw` (EU) created.
-- dbt project at `headwind_dbt/`, `~/.dbt/profiles.yml` configured, `dbt debug` passes.
-
-**Immediate next steps** live in [PLANNING.md](PLANNING.md#immediate-next-steps).
+Foundation (milestone 1) is done: venv + `requirements.txt`, GCP project `headwind-497302`,
+ADC auth, GCS bucket `gs://headwind-497302-raw` (EU), BigQuery dataset `headwind_raw` (EU),
+dbt project at `headwind_dbt/` with `dbt debug` passing. Full breakdown and the open next
+steps live in [PLANNING.md](PLANNING.md#immediate-next-steps) (the north for `/implement`).
 
 **Project commands** (`.claude/commands/`): none yet (will add headwind-specific ones when work
 starts). Useful global skills here: `/plan`, `/implement`, `/polish`, `/update-docs`, `/sql-evidence`.
