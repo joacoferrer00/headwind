@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: dim_airport
+    description: >
+      Airport reference with hub flag. All airports from OurAirports, enriched with
+      is_hub=true for the top-20 EU hubs selected in seed_top_hubs.
+    columns:
+      - name: airport_icao
+        description: ICAO airport code. Primary key.
+        tests:
+          - not_null
+          - unique
+
+      - name: airport_iata
+        description: IATA 3-letter code. Null for airports without IATA assignment.
+
+      - name: airport_name
+        description: Full airport name.
+        tests:
+          - not_null
+
+      - name: airport_type
+        description: OurAirports type classification.
+
+      - name: latitude
+        description: Latitude in decimal degrees.
+        tests:
+          - not_null
+
+      - name: longitude
+        description: Longitude in decimal degrees.
+        tests:
+          - not_null
+
+      - name: country_iso2
+        description: ISO 3166-1 alpha-2 country code.
+        tests:
+          - not_null
+
+      - name: is_hub
+        description: True for the 20 airports in seed_top_hubs.
+        tests:
+          - not_null

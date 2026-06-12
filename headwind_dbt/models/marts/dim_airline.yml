@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: dim_airline
+    description: >
+      Airline reference from OpenFlights. One row per airline with a non-null ICAO code.
+      Join key for flights: airline_icao = stg_opensky__flights.airline_icao (callsign[:3]).
+    columns:
+      - name: airline_icao
+        description: ICAO 3-letter airline code. Primary key.
+        tests:
+          - not_null
+          - unique
+
+      - name: airline_name
+        description: Airline name.
+        tests:
+          - not_null
+
+      - name: is_active
+        description: True if airline is currently active according to OpenFlights.
+        tests:
+          - not_null

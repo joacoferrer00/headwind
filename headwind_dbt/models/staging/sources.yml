@@ -118,3 +118,38 @@ sources:
             description: Number of stops (0 = nonstop).
           - name: equipment
             description: Aircraft type codes (space-separated).
+
+      - name: weather
+        description: >
+          Open-Meteo historical hourly weather for the top-20 EU hubs, 2019-2022.
+          Partitioned by obs_date (MONTH), clustered by airport_icao. One row per
+          airport per hour (~8760 rows per airport-year, 701k total).
+        columns:
+          - name: airport_icao
+            description: ICAO code of the hub airport.
+          - name: obs_time
+            description: UTC timestamp of the hourly observation.
+          - name: obs_date
+            description: Calendar date of the observation (partition key).
+          - name: temperature_2m
+            description: 2m air temperature in degrees Celsius.
+          - name: relative_humidity_2m
+            description: 2m relative humidity (0-100).
+          - name: wind_speed_10m
+            description: 10m wind speed in m/s.
+          - name: wind_gusts_10m
+            description: 10m wind gust speed in m/s.
+          - name: wind_direction_10m
+            description: 10m wind direction in degrees (0-360).
+          - name: precipitation
+            description: Total precipitation in mm.
+          - name: rain
+            description: Rain precipitation in mm.
+          - name: snowfall
+            description: Snowfall in cm.
+          - name: snow_depth
+            description: Snow depth on the ground in m.
+          - name: cloud_cover
+            description: Total cloud cover percentage (0-100).
+          - name: surface_pressure
+            description: Surface pressure in hPa.

@@ -1,4 +1,10 @@
-"""Load GCS Parquet flight partitions into BigQuery headwind_raw.flights."""
+"""Load GCS Parquet flight partitions into BigQuery headwind_raw.flights.
+
+day arrives as BYTE_ARRAY (string) in the Parquet files, so it cannot be
+used as a partition column at load time. The raw table is an unpartitioned
+landing zone; partitioning and clustering happen in the dbt staging model
+once day is cast to DATE.
+"""
 
 import logging
 import sys
@@ -17,8 +23,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-# Explicit schema so BigQuery coerces day (string in Parquet) to DATE
-# and firstseen/lastseen (int64 Unix timestamps) stay as INT64.
+# day is STRING (BYTE_ARRAY in Parquet); firstseen/lastseen are Unix INT64.
 FLIGHTS_SCHEMA = [
     bigquery.SchemaField("callsign", "STRING"),
     bigquery.SchemaField("number", "STRING"),
@@ -29,7 +34,7 @@ FLIGHTS_SCHEMA = [
     bigquery.SchemaField("destination", "STRING"),
     bigquery.SchemaField("firstseen", "INT64"),
     bigquery.SchemaField("lastseen", "INT64"),
-    bigquery.SchemaField("day", "DATE"),
+    bigquery.SchemaField("day", "STRING"),
     bigquery.SchemaField("latitude_1", "FLOAT64"),
     bigquery.SchemaField("longitude_1", "FLOAT64"),
     bigquery.SchemaField("altitude_1", "FLOAT64"),
@@ -47,13 +52,6 @@ def main() -> None:
         source_format=bigquery.SourceFormat.PARQUET,
         schema=FLIGHTS_SCHEMA,
         write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
-        range_partitioning=None,
-        time_partitioning=bigquery.TimePartitioning(
-            type_=bigquery.TimePartitioningType.MONTH,
-            field="day",
-        ),
-        clustering_fields=["origin", "destination"],
-        parquet_options=bigquery.ParquetOptions(enable_list_inference=True),
     )
 
     log.info("Loading %s into %s", GCS_URI, full_table)

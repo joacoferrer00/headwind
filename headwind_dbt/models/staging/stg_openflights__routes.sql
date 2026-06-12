@@ -10,7 +10,7 @@ renamed as (
         nullif(trim(source_airport_id), '\\N') as origin_airport_id,
         nullif(trim(destination_airport), '\\N') as destination_iata_or_icao,
         nullif(trim(destination_airport_id), '\\N') as destination_airport_id,
-        trim(codeshare) = 'Y' as is_codeshare,
+        coalesce(trim(codeshare) = 'Y', false) as is_codeshare,
         cast(stops as int64) as stops,
         nullif(trim(equipment), '\\N') as equipment,
     from source

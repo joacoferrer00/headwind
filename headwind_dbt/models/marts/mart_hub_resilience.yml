@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: mart_hub_resilience
+    description: >
+      Hub traffic and flight-duration statistics per hub × month × weather condition.
+      Each flight contributes once per hub endpoint it involves (departure at origin hub,
+      arrival at destination hub). Weather event is the classification at that hub for
+      that departure or arrival hour. Answers BQ1-3: hub weather resilience, seasonality,
+      and route risk indicators.
+    columns:
+      - name: hub_icao
+        description: ICAO code of the hub airport.
+        tests:
+          - not_null
+
+      - name: flight_month
+        description: First day of the month (partition key).
+        tests:
+          - not_null
+
+      - name: weather_event
+        description: Weather condition classification at this hub for this movement.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [clear, windy, snow, fog, storm]
+
+      - name: total_movements
+        description: Total flight movements (departures + arrivals) at this hub-month-event.
+        tests:
+          - not_null
+
+      - name: avg_flight_duration_minutes
+        description: Mean flight duration in minutes for movements at this hub under this weather.
+
+      - name: stddev_flight_duration_minutes
+        description: Standard deviation of flight duration; higher = more variable operations.
+
+      - name: p50_flight_duration_minutes
+        description: Median flight duration in minutes.
+
+      - name: p95_flight_duration_minutes
+        description: 95th percentile flight duration; measures long-tail disruption.

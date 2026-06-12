@@ -1,0 +1,61 @@
+version: 2
+
+models:
+  - name: stg_opensky__flights
+    description: >
+      Cleaned OpenSky flight observations, 2019-2022. One row per flight observed by
+      OpenSky. Filtered to rows with at least one non-null endpoint and valid duration.
+      day cast to DATE; firstseen/lastseen cast to TIMESTAMP from Unix seconds. Airline
+      ICAO derived from callsign[:3].
+    columns:
+      - name: flight_id
+        description: Surrogate key (callsign + day + firstseen).
+        tests:
+          - not_null
+          - unique
+
+      - name: callsign
+        description: ICAO callsign as broadcast.
+        tests:
+          - not_null
+
+      - name: airline_icao
+        description: First 3 chars of callsign; ICAO airline code. May not resolve to a known airline.
+
+      - name: flight_number
+        description: Flight number (often null).
+
+      - name: aircraft_icao24
+        description: 24-bit ICAO aircraft address (hex).
+
+      - name: aircraft_registration
+        description: Aircraft tail number.
+
+      - name: aircraft_typecode
+        description: ICAO aircraft type code.
+
+      - name: origin_icao
+        description: Departure airport ICAO. Null for unresolved flights (see data realities in PLANNING.md).
+
+      - name: destination_icao
+        description: Arrival airport ICAO. Null for unresolved flights.
+
+      - name: flight_date
+        description: Calendar date of the flight (partition key downstream).
+        tests:
+          - not_null
+
+      - name: first_seen_at
+        description: UTC timestamp of first ADS-B observation; proxy for takeoff.
+        tests:
+          - not_null
+
+      - name: last_seen_at
+        description: UTC timestamp of last ADS-B observation; proxy for landing.
+        tests:
+          - not_null
+
+      - name: flight_duration_minutes
+        description: last_seen_at minus first_seen_at in minutes. Always >= 0 (filtered).
+        tests:
+          - not_null

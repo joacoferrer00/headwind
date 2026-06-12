@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: mart_airline_performance
+    description: >
+      Monthly airline performance metrics for airlines appearing in hub-touching flights.
+      Covers flight counts, duration stats, hub concentration, and weather-split duration.
+      Answers BQ5 and BQ7: airline strategy through the shock and weather-adjusted
+      performance.
+    columns:
+      - name: airline_icao
+        description: ICAO 3-letter airline code.
+        tests:
+          - not_null
+
+      - name: flight_month
+        description: First day of the month (partition key).
+        tests:
+          - not_null
+
+      - name: total_flights
+        description: Total flights operated by this airline in this month (hub-touching only).
+        tests:
+          - not_null
+
+      - name: hub_concentration_ratio
+        description: >
+          Share of this airline's flights that touch at least one top-20 hub.
+          1.0 = all flights through hubs, 0.0 = no hub flights.
+
+      - name: avg_duration_clear_weather
+        description: Mean flight duration (minutes) on clear-weather departures.
+
+      - name: avg_duration_bad_weather
+        description: Mean flight duration (minutes) on non-clear-weather departures.
+
+      - name: traffic_recovery_ratio
+        description: total_flights / 2019 same-month average. 1.0 = back to pre-shock level.

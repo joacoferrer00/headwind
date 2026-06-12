@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: dim_aircraft
+    description: >
+      Aircraft reference derived from observed flights. One row per unique ICAO24 address.
+      Registration and typecode are the most recent non-null values seen for that ICAO24.
+    columns:
+      - name: aircraft_icao24
+        description: 24-bit ICAO aircraft address (hex). Primary key.
+        tests:
+          - not_null
+          - unique

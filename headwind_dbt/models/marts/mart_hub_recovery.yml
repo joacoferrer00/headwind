@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: mart_hub_recovery
+    description: >
+      Per-hub monthly movements across 2019-2022, with recovery ratio vs the same
+      calendar month in 2019 and pandemic phase assignment. Answers BQ4: collapse speed
+      and recovery trajectory for each hub.
+    columns:
+      - name: hub_icao
+        description: ICAO code of the hub airport.
+        tests:
+          - not_null
+
+      - name: flight_month
+        description: First day of the month (partition key).
+        tests:
+          - not_null
+
+      - name: total_movements
+        description: Total flight movements (departures + arrivals) at this hub in this month.
+        tests:
+          - not_null
+
+      - name: baseline_movements_2019
+        description: 2019 same-calendar-month movements. Null for 2019 itself (no prior baseline).
+
+      - name: recovery_ratio
+        description: >
+          total_movements / baseline_movements_2019. 1.0 = back to 2019 level.
+          Null if baseline is null or zero.
+
+      - name: pandemic_phase
+        description: Pandemic phase for this month (pre_shock, collapse, restricted, recovery).

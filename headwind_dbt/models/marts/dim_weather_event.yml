@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: dim_weather_event
+    description: >
+      Static lookup table for weather event categories. The five categories are clear,
+      windy, snow, fog, storm. Fog is proxied from humidity + cloud cover because
+      Open-Meteo does not provide a direct visibility variable.
+    columns:
+      - name: weather_event
+        description: Weather event category name. Primary key.
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              values: [clear, windy, snow, fog, storm]
+
+      - name: description
+        description: Human-readable description with classification thresholds.
+        tests:
+          - not_null

@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: int_traffic_baselines
+    description: >
+      Per-hub per-month 2019 baseline traffic (departures + arrivals separately).
+      Covers only the 20 hubs in seed_top_hubs. Used as the denominator for
+      collapse-and-recovery ratios in mart_hub_recovery.
+    columns:
+      - name: hub_icao
+        description: ICAO code of the hub airport.
+        tests:
+          - not_null
+
+      - name: flight_month
+        description: First day of the month (2019-01-01 through 2019-12-01).
+        tests:
+          - not_null
+
+      - name: departure_count_2019
+        description: Number of departures from this hub in this 2019 month.
+        tests:
+          - not_null
+
+      - name: arrival_count_2019
+        description: Number of arrivals at this hub in this 2019 month.
+        tests:
+          - not_null
+
+      - name: total_movements_2019
+        description: Total movements (departures + arrivals) at this hub in this 2019 month.
+        tests:
+          - not_null

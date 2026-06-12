@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: dim_pandemic_phase
+    description: >
+      Static lookup for the four pandemic phases covering 2019-2022. Used to bucket
+      flights and traffic metrics by shock phase for collapse-and-recovery analysis.
+    columns:
+      - name: pandemic_phase
+        description: Phase identifier. Primary key.
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              values: [pre_shock, collapse, restricted, recovery]
+
+      - name: phase_start_date
+        description: First date of the phase (inclusive).
+        tests:
+          - not_null
+
+      - name: phase_end_date
+        description: Last date of the phase (inclusive).
+        tests:
+          - not_null
+
+      - name: description
+        description: Human-readable phase description.
+        tests:
+          - not_null

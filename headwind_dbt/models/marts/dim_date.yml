@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: >
+      Date spine from 2019-01-01 through 2022-12-31. One row per calendar day.
+      Covers the full headwind analysis window. Generated via dbt_utils.date_spine.
+    columns:
+      - name: date_day
+        description: Calendar date. Primary key.
+        tests:
+          - not_null
+          - unique
+
+      - name: year
+        description: Calendar year (2019-2022).
+        tests:
+          - not_null
+
+      - name: quarter_of_year
+        description: Calendar quarter (1-4).
+        tests:
+          - not_null
+
+      - name: month
+        description: Calendar month (1-12).
+        tests:
+          - not_null
+
+      - name: is_weekend
+        description: True if Saturday (day_of_week=7) or Sunday (day_of_week=1).
+        tests:
+          - not_null

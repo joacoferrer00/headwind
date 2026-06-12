@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: mart_route_risk
+    description: >
+      Per-OD-pair weather and shock sensitivity indices. Only pairs with at least one hub
+      endpoint and at least 12 flights in 2019 are included.
+      weather_sensitivity_index: relative traffic drop on bad-weather vs clear days in 2019
+      (0 = no effect, 1 = complete shutdown on bad days).
+      shock_sensitivity_index: relative monthly traffic drop during Jan-Jun 2020 vs 2019
+      average.
+    columns:
+      - name: origin_icao
+        description: Departure airport ICAO.
+        tests:
+          - not_null
+
+      - name: destination_icao
+        description: Arrival airport ICAO.
+        tests:
+          - not_null
+
+      - name: total_flights_2019
+        description: Total flights on this route in 2019.
+        tests:
+          - not_null
+
+      - name: weather_sensitivity_index
+        description: >
+          (avg_clear_daily - avg_bad_daily) / avg_clear_daily. Null if no bad-weather days.
+          Higher = more sensitive to weather.
+
+      - name: shock_sensitivity_index
+        description: >
+          (avg_monthly_2019 - avg_collapse) / avg_monthly_2019. Higher = more affected by
+          the pandemic. Null if no 2020 data.

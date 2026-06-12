@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: int_flights_with_weather
+    description: >
+      Hub-touching flights joined to hourly weather at origin and destination.
+      Only flights where origin or destination is one of the top-20 EU hubs are included.
+      Weather is left-joined: null when the endpoint is not a hub or is outside the
+      2019-2022 weather window. Weather event classification applied per endpoint
+      (snow > windy/storm > fog > clear, with fog proxied from humidity + cloud cover).
+    columns:
+      - name: flight_id
+        description: Surrogate PK from stg_opensky__flights.
+        tests:
+          - not_null
+          - unique
+
+      - name: flight_date
+        description: Calendar date of the flight (partition key).
+        tests:
+          - not_null
+
+      - name: origin_weather_event
+        description: Weather event at origin hub at departure hour. Null if origin is not a hub.
+
+      - name: destination_weather_event
+        description: Weather event at destination hub at arrival hour. Null if destination is not a hub.
