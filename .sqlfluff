@@ -1,0 +1,19 @@
+[sqlfluff]
+templater = dbt
+dialect = bigquery
+max_line_length = 100
+
+[sqlfluff:templater:dbt]
+project_dir = headwind_dbt
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.types]
+capitalisation_policy = lower

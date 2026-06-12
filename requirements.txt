@@ -11,3 +11,4 @@ python-dotenv
 sqlfluff
 sqlfluff-templater-dbt
 pre-commit
+ruff

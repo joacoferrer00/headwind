@@ -1,0 +1,27 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+
+  - repo: local
+    hooks:
+      - id: sqlfluff-lint
+        name: sqlfluff lint
+        language: system
+        entry: sqlfluff lint --dialect bigquery
+        types_or: [sql]
+
+      - id: ruff-lint
+        name: ruff lint
+        language: system
+        entry: ruff check --fix
+        types_or: [python]
+
+      - id: ruff-format
+        name: ruff format
+        language: system
+        entry: ruff format
+        types_or: [python]

@@ -17,6 +17,7 @@ data/staging/
 *.parquet
 *.csv
 !data/reference/*.csv
+!headwind_dbt/seeds/*.csv
 
 # IDE
 .vscode/
