@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: stg_openflights__airlines
+    description: >
+      Cleaned airline reference from OpenFlights. One row per airline with a non-null
+      ICAO code. The ICAO code is the join key to flight callsigns (callsign[:3]).
+    columns:
+      - name: airline_id
+        description: OpenFlights internal airline ID. Primary key.
+        tests:
+          - not_null
+          - unique
+
+      - name: airline_icao
+        description: ICAO 3-letter airline code. Used to resolve callsign[:3].
+        tests:
+          - not_null
+
+      - name: airline_name
+        description: Airline name.
+        tests:
+          - not_null
+
+      - name: is_active
+        description: True if the airline is currently active.
+        tests:
+          - not_null

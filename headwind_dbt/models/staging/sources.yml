@@ -1,0 +1,120 @@
+version: 2
+
+sources:
+  - name: headwind_raw
+    database: headwind-497302
+    schema: headwind_raw
+    description: >
+      Raw ingestion layer. All tables are one-shot historical loads; freshness checks
+      are disabled because the dataset is frozen at Dec 2022.
+
+    tables:
+      - name: flights
+        description: >
+          OpenSky COVID-19 Flight Dataset (Zenodo record 7923702). One row per observed
+          flight, covering 2019-01 through 2022-12. Partitioned by day (monthly),
+          clustered by origin and destination. Note: origin and destination ICAO are
+          frequently null; flights null on the relevant side are dropped in staging.
+        columns:
+          - name: callsign
+            description: ICAO callsign. First 3 chars are the airline ICAO code.
+          - name: number
+            description: Flight number (often null).
+          - name: icao24
+            description: 24-bit ICAO aircraft address (hex).
+          - name: registration
+            description: Aircraft tail number.
+          - name: typecode
+            description: ICAO aircraft type code.
+          - name: origin
+            description: Departure airport ICAO code. Frequently null.
+          - name: destination
+            description: Arrival airport ICAO code. Frequently null.
+          - name: firstseen
+            description: Unix timestamp (seconds) of first ADS-B observation; proxy for takeoff.
+          - name: lastseen
+            description: Unix timestamp (seconds) of last ADS-B observation; proxy for landing.
+          - name: day
+            description: Calendar date of the flight (DATE).
+          - name: latitude_1
+            description: Latitude of first observation.
+          - name: longitude_1
+            description: Longitude of first observation.
+          - name: altitude_1
+            description: Altitude (m) of first observation.
+          - name: latitude_2
+            description: Latitude of last observation.
+          - name: longitude_2
+            description: Longitude of last observation.
+          - name: altitude_2
+            description: Altitude (m) of last observation.
+
+      - name: ourairports_airports
+        description: >
+          OurAirports global airport reference (one-shot CSV). 85k+ airports worldwide.
+          Used to build dim_airport and to resolve ICAO codes to lat/long/country.
+        columns:
+          - name: ident
+            description: ICAO airport code (primary key for joins).
+          - name: iata_code
+            description: IATA airport code.
+          - name: name
+            description: Airport name.
+          - name: latitude_deg
+            description: Latitude in decimal degrees.
+          - name: longitude_deg
+            description: Longitude in decimal degrees.
+          - name: elevation_ft
+            description: Elevation above sea level in feet.
+          - name: iso_country
+            description: ISO 3166-1 alpha-2 country code.
+          - name: iso_region
+            description: ISO 3166-2 region code.
+          - name: type
+            description: Airport type (large_airport, medium_airport, small_airport, etc.).
+
+      - name: openflights_airlines
+        description: >
+          OpenFlights airlines reference (one-shot). ~6k airlines with ICAO/IATA codes.
+          Used to resolve callsign[:3] to airline name and country.
+        columns:
+          - name: airline_id
+            description: OpenFlights internal airline ID.
+          - name: name
+            description: Airline name.
+          - name: alias
+            description: Alias name (often null or "\\N").
+          - name: iata
+            description: IATA 2-letter airline code.
+          - name: icao
+            description: ICAO 3-letter airline code. Join key from callsign[:3].
+          - name: callsign
+            description: Radio callsign.
+          - name: country
+            description: Country of registration.
+          - name: active
+            description: "Y if currently active, N if defunct."
+
+      - name: openflights_routes
+        description: >
+          OpenFlights routes reference (one-shot). ~67k routes. Used to supplement
+          origin/destination when the OpenSky fields are null (stretch use case).
+        columns:
+          - name: airline
+            description: IATA or ICAO airline code.
+          - name: airline_id
+            description: OpenFlights airline ID (may be "\\N").
+          - name: source_airport
+            description: IATA or ICAO source airport code.
+          - name: source_airport_id
+            description: OpenFlights airport ID.
+          - name: destination_airport
+            description: IATA or ICAO destination airport code.
+          - name: destination_airport_id
+            description: OpenFlights airport ID.
+          - name: codeshare
+            description: "Y if codeshare, empty otherwise."
+          - name: stops
+            description: Number of stops (0 = nonstop).
+          - name: equipment
+            description: Aircraft type codes (space-separated).

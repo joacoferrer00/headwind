@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: stg_ourairports__airports
+    description: >
+      Cleaned airport reference from OurAirports. One row per airport.
+      Filtered to rows with a non-null ICAO ident; types cast.
+    columns:
+      - name: airport_icao
+        description: ICAO airport code. Primary key.
+        tests:
+          - not_null
+          - unique
+
+      - name: airport_iata
+        description: IATA 3-letter airport code. Null for airports without IATA assignment.
+
+      - name: airport_name
+        description: Full airport name.
+        tests:
+          - not_null
+
+      - name: airport_type
+        description: OurAirports type classification.
+        tests:
+          - accepted_values:
+              values:
+                - large_airport
+                - medium_airport
+                - small_airport
+                - heliport
+                - seaplane_base
+                - balloonport
+                - closed
+
+      - name: latitude
+        description: Latitude in decimal degrees.
+        tests:
+          - not_null
+
+      - name: longitude
+        description: Longitude in decimal degrees.
+        tests:
+          - not_null
+
+      - name: country_iso2
+        description: ISO 3166-1 alpha-2 country code.
+        tests:
+          - not_null

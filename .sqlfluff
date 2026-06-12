@@ -2,6 +2,7 @@
 templater = dbt
 dialect = bigquery
 max_line_length = 100
+exclude_rules = CV03, ST06
 
 [sqlfluff:templater:dbt]
 project_dir = headwind_dbt

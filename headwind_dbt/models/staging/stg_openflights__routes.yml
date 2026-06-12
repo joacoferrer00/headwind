@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: stg_openflights__routes
+    description: >
+      Cleaned routes reference from OpenFlights. One row per airline-route.
+      Filtered to rows with both origin and destination non-null.
+      Note: airport codes may be IATA or ICAO (OpenFlights mixes both).
+    columns:
+      - name: airline_iata_or_icao
+        description: Airline code (IATA or ICAO; OpenFlights does not distinguish).
+
+      - name: origin_iata_or_icao
+        description: Origin airport code (IATA or ICAO).
+        tests:
+          - not_null
+
+      - name: destination_iata_or_icao
+        description: Destination airport code (IATA or ICAO).
+        tests:
+          - not_null
+
+      - name: is_codeshare
+        description: True if this is a codeshare operation.
+        tests:
+          - not_null
+
+      - name: stops
+        description: Number of intermediate stops (0 = nonstop).
