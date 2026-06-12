@@ -141,9 +141,10 @@ decisions and must be respected by any model built here:
 
 ## Plan (executable, dependency-ordered)
 
-The manual for `/implement`. Each step is self-contained with a "Done when". Phase 1 is
-done; phases 2 to 6 are the runway. Phase 7 is optional. Hard constraints: BigQuery cost
-rules (partition + cluster every table, `maximum_bytes_billed` cap), conventions in
+The manual for `/implement`. Phase 1 done. Phase 2 in progress (2.1 + 2.3 done, 2.2
+running in background, 2.4-2.6 pending). Phase 3 partial (3.1 + reference staging done).
+Phases 3-6 are the runway. Phase 7 is optional. Hard constraints: BigQuery cost rules
+(partition + cluster every table, `maximum_bytes_billed` cap), conventions in
 [CONVENTIONS.md](CONVENTIONS.md), no service-account JSON committed to the repo.
 
 ### Phase 1 — Foundation (DONE)
@@ -153,27 +154,13 @@ dataset `headwind_raw` (EU), dbt project at `headwind_dbt/` (medallion config,
 pass), $1 billing budget, conventions and project skills. Remote: `github.com/joacoferrer00/headwind`.
 
 ### Phase 2 — Tooling + ingestion to raw
-2.1 **Repo tooling.**
-   - What: add `.sqlfluff` (bigquery dialect, dbt templater), `pyproject.toml` (ruff,
-     line 88), `.pre-commit-config.yaml` (sqlfluff + ruff), and `headwind_dbt/packages.yml`
-     (`dbt_utils`, `dbt_expectations`, `codegen`).
-   - Where: repo root + `headwind_dbt/`.
-   - Done when: `pre-commit install` works, `dbt deps` resolves, `dbt parse` passes.
-   - Depends on: none.
-2.2 **Download flights (Zenodo).**
-   - What: Python script pulls the 48 `flightlist_*.csv.gz` files from record 7923702
-     (Zenodo API file listing), converts each to Parquet, uploads to
-     `gs://headwind-497302-raw/zenodo_flights/dt=YYYY-MM-01/`. Idempotent per partition.
-   - How: `requests.Session`, stream the `.gz`, parse `day` to date, write Parquet. No
-     elaborate pagination needed (static files).
-   - Done when: 48 Parquet partitions in GCS.
-   - Depends on: 2.1.
-2.3 **Load reference data (one-shot).**
-   - What: download OurAirports `airports.csv`, OpenFlights `airlines.dat` + `routes.dat`;
-     upload to GCS; `bq load` into `headwind_raw` (`ourairports_airports`,
-     `openflights_airlines`, `openflights_routes`).
-   - Done when: three raw tables exist with sane row counts.
-   - Depends on: 2.1.
+- [x] 2.1 Repo tooling: `.sqlfluff`, `pyproject.toml` (ruff), `.pre-commit-config.yaml`,
+  `packages.yml` (dbt_utils + dbt_expectations + codegen). Pre-commit + dbt parse passing.
+- [ ] 2.2 Download flights (Zenodo): `scripts/ingest_zenodo_flights.py` written and running.
+  Idempotent per GCS partition. **In progress as of 2026-06-12; run is resumable.**
+  Done when: 48 Parquet partitions at `gs://headwind-497302-raw/zenodo_flights/dt=*/`.
+- [x] 2.3 Reference data: OurAirports (85,569 airports), OpenFlights airlines (6,162) +
+  routes (67,663) loaded to `headwind_raw`.
 2.4 **Load flights to raw.**
    - What: `bq load` the Parquet into `headwind_raw.flights`, partitioned by `day`.
    - Done when: table partitioned by date, row count matches source order of magnitude.
@@ -198,13 +185,11 @@ pass), $1 billing budget, conventions and project skills. Remote: `github.com/jo
    - Depends on: 2.5 (needs the locked hub lat/long).
 
 ### Phase 3 — Modeling (staging to marts)
-3.1 **Sources.** `sources.yml` declaring the raw tables; freshness off (frozen dataset).
-3.2 **Staging** (`stg_`, views): `stg_opensky__flights` (cast types, derive
-   `airline_icao` from `callsign[:3]`, `flight_duration_minutes` from
-   `lastseen - firstseen`, keep only flights touching a hub), `stg_openmeteo__weather`,
-   `stg_ourairports__airports`, `stg_openflights__airlines`, `stg_openflights__routes`.
-   Each with a `.yml`: description + PK `not_null`/`unique`.
-   - Done when: `dbt build --select staging` passes with tests green.
+- [x] 3.1 Sources: `sources.yml` in `models/staging/`, all 4 raw tables declared,
+  freshness checks off.
+- [ ] 3.2 Staging (`stg_`, views): airports + airlines + routes green (18/18 tests pass).
+  `stg_opensky__flights` and `stg_openmeteo__weather` pending `headwind_raw.flights`
+  (waits on 2.4). Done when: `dbt build --select staging` fully green.
 3.3 **Dimensions:** `dim_airport` (hubs flagged), `dim_airline`, `dim_aircraft` (by
    `icao24`/registration), `dim_date` (dbt_utils date spine 2019-2022),
    `dim_weather_event` (clear/windy/snow/fog/storm, derived; fog proxied per data

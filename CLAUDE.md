@@ -35,13 +35,17 @@ SQL; he steers the agent that writes it.
 
 ## Current state (2026-06-12)
 
-Foundation (milestone 1) is done: venv + `requirements.txt`, GCP project `headwind-497302`,
-ADC auth, GCS bucket `gs://headwind-497302-raw` (EU), BigQuery dataset `headwind_raw` (EU),
-dbt project at `headwind_dbt/` with `dbt debug` passing. Full breakdown and the open next
-steps live in [PLANNING.md](PLANNING.md#immediate-next-steps) (the north for `/implement`).
+Phase 1 (foundation) and Phase 2.1 (tooling) are done. Phase 2.2 (Zenodo download) is
+running in background (`scripts/ingest_zenodo_flights.py`, idempotent, resumable). Phase 2.3
+(reference data) is done: OurAirports + OpenFlights loaded to `headwind_raw`. Phase 3.1
+(sources.yml) and the three reference staging models are green. Next concrete steps: wait for
+2.2 to finish (48 Parquet partitions in GCS), then run 2.4 (`scripts/load_flights_to_bq.py`),
+then 2.5 (top-20 hub seed), 2.6 (weather pull), and complete Phase 3 staging.
 
-**Project commands** (`.claude/commands/`): none yet (will add headwind-specific ones when work
-starts). Useful global skills here: `/plan`, `/implement`, `/polish`, `/update-docs`, `/sql-evidence`.
+Full phase breakdown in [PLANNING.md](PLANNING.md) (the north for `/implement`).
+
+**Project commands** (`.claude/commands/`): none yet. Useful global skills: `/plan`,
+`/implement`, `/polish`, `/update-docs`, `/sql-evidence`.
 
 **Known gotcha (fixed):** the `bq` CLI looked for a missing `python3.14`. A persistent
 user env var `CLOUDSDK_PYTHON` now points at the SDK's bundled python, so new shells

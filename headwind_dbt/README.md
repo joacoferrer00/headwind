@@ -1,15 +1,19 @@
-Welcome to your new dbt project!
+# headwind_dbt
 
-### Using the starter project
+dbt project for the headwind EU aviation resilience pipeline.
 
-Try running the following commands:
-- dbt run
-- dbt test
+See the root [CLAUDE.md](../CLAUDE.md) and [PLANNING.md](../PLANNING.md) for project context,
+current state, and next steps. See [CONVENTIONS.md](../CONVENTIONS.md) for SQL and Python
+style rules that apply to all models here.
 
+## Quick start
 
-### Resources:
-- Learn more about dbt [in the docs](https://docs.getdbt.com/docs/introduction)
-- Check out [Discourse](https://discourse.getdbt.com/) for commonly asked questions and answers
-- Join the [chat](https://community.getdbt.com/) on Slack for live discussions and support
-- Find [dbt events](https://events.getdbt.com) near you
-- Check out [the blog](https://blog.getdbt.com/) for the latest news on dbt's development and best practices
+```bash
+cd headwind_dbt
+dbt deps        # install packages
+dbt parse       # verify project compiles
+dbt build       # run models + tests (requires headwind_raw tables to exist)
+```
+
+Auth: ADC via `gcloud auth application-default login`. Profile: `~/.dbt/profiles.yml`,
+target `dev`, dataset `dbt_dev`, project `headwind-497302` (EU).
