@@ -220,12 +220,12 @@ pass), $1 billing budget, conventions and project skills. Remote: `github.com/jo
    ~0.30 (the two resiliences are largely independent). Live and verified:
    https://joacoferrer00.github.io/headwind/
 
-### Phase 6 — Polish (ship it)
-6.1 Replace the dbt starter `README.md` with the portfolio README: lead with the
-   cross-stress question, architecture diagram, the live dashboard + dbt docs links,
-   screenshots, headline insights, the null-endpoint coverage caveat, and a "future work"
-   list (the Phase 7 items + OpenSky Trino live extension).
-   - Done when: README ships and the repo reads as a finished portfolio piece.
+### Phase 6 — Polish (ship it) (DONE)
+- [x] 6.1 Portfolio `README.md` at the repo root: leads with the cross-stress question and
+   finding, mermaid architecture diagram, live dashboard + dbt docs links, two dashboard
+   screenshots (`docs/img/`), the dbt layer/test summary, the null-endpoint + unresolved-
+   airline coverage caveat, local-run steps, and a "future work" list (Phase 7 items +
+   OpenSky Trino live extension).
 
 ### Phase 7 — Stretch (only if the core is solid)
 7.1 dbt semantic layer for the core metrics. 7.2 OWID stringency as a weighting source.
