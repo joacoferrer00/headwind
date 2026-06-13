@@ -201,16 +201,18 @@ pass), $1 billing budget, conventions and project skills. Remote: `github.com/jo
   `quarter_of_year`) found and rebuilt during this phase.
 
 ### Phase 5 — Delivery (CI/CD + dashboard)
-5.1 **BigQuery CI auth (the one human-in-the-loop point).**
-   - What: create a service account, grant `roles/bigquery.dataEditor` +
-     `roles/bigquery.jobUser`, set up Workload Identity Federation bound to the GitHub
-     repo (preferred, no long-lived key), and register the secret/provider with
-     `gh secret set`. Add a `ci` target to `profiles.yml` (service-account method, dataset
-     `dbt_ci`).
-   - How: the agent does this end to end via `gcloud` + `gh` IF `gh auth status` is logged
-     in with repo admin. If not, it stops and hands Joaquin the exact `gh secret set`
-     command to run. The SA key never lands in the repo (CLAUDE.md rule).
-   - Done when: a manual Actions run authenticates and runs `dbt build` against `dbt_ci`.
+- [x] 5.1 **BigQuery CI auth (WIF, no key).** SA
+  `dbt-ci@headwind-497302.iam.gserviceaccount.com` with `bigquery.dataEditor` +
+  `bigquery.jobUser`. WIF pool `github` + OIDC provider `github-provider`
+  (condition: `repository == 'joacoferrer00/headwind'`), SA bound via
+  `iam.workloadIdentityUser` to the repo principalSet. Secrets
+  `GCP_WORKLOAD_IDENTITY_PROVIDER` + `GCP_SERVICE_ACCOUNT` set (no JSON). `ci` target
+  (dataset `dbt_ci`, 25 GB cap) in `~/.dbt/profiles.yml` and committed `ci/profiles.yml`.
+  `dbt debug --target ci` passes locally; green Actions run is the final verification.
+5.2 **GitHub Actions CI:** `.github/workflows/ci.yml` runs sqlfluff, `dbt deps`,
+   `dbt build` + `dbt test` against `dbt_ci` (WIF auth) on PR + manual dispatch. Full
+   build per run (~15-25 GB scanned), chosen over changed-only/lint-only.
+   Done when: green check on a test PR.
 5.2 **GitHub Actions CI:** PR workflow runs sqlfluff, `dbt deps`, `dbt build` + `dbt test`
    against `dbt_ci`. Done when: green check on a test PR.
 5.3 **dbt docs:** `dbt docs generate`, published to GitHub Pages (lineage DAG browsable).

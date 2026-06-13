@@ -1,0 +1,17 @@
+# dbt profile used only by GitHub Actions CI. Local development uses ~/.dbt/profiles.yml.
+# Auth is Workload Identity Federation: google-github-actions/auth writes a federated
+# credential that ADC resolves, so method oauth needs no key file. The SA dbt-ci has
+# bigquery.dataEditor + bigquery.jobUser and writes to a dedicated dbt_ci dataset.
+headwind_dbt:
+  target: ci
+  outputs:
+    ci:
+      type: bigquery
+      method: oauth
+      project: headwind-497302
+      dataset: dbt_ci
+      location: EU
+      threads: 4
+      priority: interactive
+      timeout_seconds: 600
+      maximum_bytes_billed: 25000000000

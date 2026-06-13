@@ -1,0 +1,51 @@
+name: dbt CI
+
+# Runs on PRs to main and on manual dispatch. Authenticates to BigQuery via Workload
+# Identity Federation (no long-lived key), lints with sqlfluff, then runs the full
+# dbt build + tests against the dbt_ci dataset.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required to mint the OIDC token for WIF
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: headwind_dbt
+    env:
+      DBT_PROFILES_DIR: ${{ github.workspace }}/ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r ../requirements.txt
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: dbt deps
+        run: dbt deps
+
+      - name: sqlfluff lint
+        run: sqlfluff lint models
+
+      - name: dbt debug (auth check)
+        run: dbt debug --target ci
+
+      - name: dbt build
+        run: dbt build --target ci
