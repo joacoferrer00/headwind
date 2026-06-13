@@ -142,7 +142,9 @@ decisions and must be respected by any model built here:
 ## Plan (executable, dependency-ordered)
 
 The manual for `/implement`. Phases 1-4 done and committed (120 tests: 117 pass, 3
-by-design warns, 0 errors in BigQuery). Phase 5 (Delivery) is next.
+by-design warns, 0 errors in BigQuery). Phase 5 in progress: 5.1 done and verified
+(green CI run), 5.2 workflow built and proven via manual dispatch. Next: 5.3 (dbt docs
+to Pages) + 5.4 (Evidence dashboard).
 Hard constraints: BigQuery cost rules (partition + cluster every table,
 `maximum_bytes_billed` cap), conventions in [CONVENTIONS.md](CONVENTIONS.md), no
 service-account JSON committed to the repo.
@@ -209,10 +211,12 @@ pass), $1 billing budget, conventions and project skills. Remote: `github.com/jo
   `GCP_WORKLOAD_IDENTITY_PROVIDER` + `GCP_SERVICE_ACCOUNT` set (no JSON). `ci` target
   (dataset `dbt_ci`, 25 GB cap) in `~/.dbt/profiles.yml` and committed `ci/profiles.yml`.
   `dbt debug --target ci` passes locally; green Actions run is the final verification.
-5.2 **GitHub Actions CI:** `.github/workflows/ci.yml` runs sqlfluff, `dbt deps`,
+- [x] 5.2 **GitHub Actions CI:** `.github/workflows/ci.yml` runs sqlfluff, `dbt deps`,
    `dbt build` + `dbt test` against `dbt_ci` (WIF auth) on PR + manual dispatch. Full
-   build per run (~15-25 GB scanned), chosen over changed-only/lint-only.
-   Done when: green check on a test PR.
+   build per run (~15-25 GB scanned), chosen over changed-only/lint-only. Proven green
+   via manual dispatch (run 27475746805, 2m20s). The `pull_request` trigger is identical
+   wiring; the formal PR check is deferred to the next real PR (5.3/5.4) to avoid a
+   throwaway ~20 GB build.
 5.2 **GitHub Actions CI:** PR workflow runs sqlfluff, `dbt deps`, `dbt build` + `dbt test`
    against `dbt_ci`. Done when: green check on a test PR.
 5.3 **dbt docs:** `dbt docs generate`, published to GitHub Pages (lineage DAG browsable).
