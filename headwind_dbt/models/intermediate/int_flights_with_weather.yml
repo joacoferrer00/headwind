@@ -8,6 +8,10 @@ models:
       Weather is left-joined: null when the endpoint is not a hub or is outside the
       2019-2022 weather window. Weather event classification applied per endpoint
       (snow > windy/storm > fog > clear, with fog proxied from humidity + cloud cover).
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 10000000
+          max_value: 16000000
     columns:
       - name: flight_id
         description: Surrogate PK from stg_opensky__flights.
@@ -20,8 +24,24 @@ models:
         tests:
           - not_null
 
+      - name: flight_duration_minutes
+        description: last_seen_at minus first_seen_at in minutes. Non-negative by construction.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 3000
+          - dbt_expectations.expect_column_mean_to_be_between:
+              min_value: 60
+              max_value: 300
+
       - name: origin_weather_event
         description: Weather event at origin hub at departure hour. Null if origin is not a hub.
+        tests:
+          - accepted_values:
+              values: [clear, windy, snow, fog, storm]
 
       - name: destination_weather_event
         description: Weather event at destination hub at arrival hour. Null if destination is not a hub.
+        tests:
+          - accepted_values:
+              values: [clear, windy, snow, fog, storm]

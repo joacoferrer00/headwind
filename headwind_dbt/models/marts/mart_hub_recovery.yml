@@ -6,21 +6,36 @@ models:
       Per-hub monthly movements across 2019-2022, with recovery ratio vs the same
       calendar month in 2019 and pandemic phase assignment. Answers BQ4: collapse speed
       and recovery trajectory for each hub.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [hub_icao, flight_month]
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 800
+          max_value: 1100
     columns:
       - name: hub_icao
         description: ICAO code of the hub airport.
         tests:
           - not_null
+          - relationships:
+              to: ref('dim_airport')
+              field: airport_icao
 
       - name: flight_month
         description: First day of the month (partition key).
         tests:
           - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_day
 
       - name: total_movements
         description: Total flight movements (departures + arrivals) at this hub in this month.
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 10000000
 
       - name: baseline_movements_2019
         description: 2019 same-calendar-month movements. Null for 2019 itself (no prior baseline).
@@ -29,6 +44,18 @@ models:
         description: >
           total_movements / baseline_movements_2019. 1.0 = back to 2019 level.
           Null if baseline is null or zero.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 10
+              row_condition: "recovery_ratio is not null"
 
       - name: pandemic_phase
         description: Pandemic phase for this month (pre_shock, collapse, restricted, recovery).
+        tests:
+          - not_null
+          - accepted_values:
+              values: [pre_shock, collapse, restricted, recovery]
+          - relationships:
+              to: ref('dim_pandemic_phase')
+              field: pandemic_phase

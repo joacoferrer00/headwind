@@ -7,26 +7,51 @@ models:
       Covers flight counts, duration stats, hub concentration, and weather-split duration.
       Answers BQ5 and BQ7: airline strategy through the shock and weather-adjusted
       performance.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [airline_icao, flight_month]
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 45000
+          max_value: 65000
     columns:
       - name: airline_icao
         description: ICAO 3-letter airline code.
         tests:
           - not_null
+          # warn-only: airline_icao is callsign[:3]; ~60% of observed codes do not
+          # resolve to an OpenFlights airline. The unresolved rate is a documented
+          # data-quality fact, not a build-breaking defect.
+          - relationships:
+              to: ref('dim_airline')
+              field: airline_icao
+              config:
+                severity: warn
 
       - name: flight_month
         description: First day of the month (partition key).
         tests:
           - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_day
 
       - name: total_flights
         description: Total flights operated by this airline in this month (hub-touching only).
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 10000000
 
       - name: hub_concentration_ratio
         description: >
           Share of this airline's flights that touch at least one top-20 hub.
           1.0 = all flights through hubs, 0.0 = no hub flights.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1
+              row_condition: "hub_concentration_ratio is not null"
 
       - name: avg_duration_clear_weather
         description: Mean flight duration (minutes) on clear-weather departures.
@@ -35,4 +60,13 @@ models:
         description: Mean flight duration (minutes) on non-clear-weather departures.
 
       - name: traffic_recovery_ratio
-        description: total_flights / 2019 same-month average. 1.0 = back to pre-shock level.
+        description: >
+          total_flights / 2019 same-month average. 1.0 = back to pre-shock level.
+          Extreme values (hundreds) are legitimate: they come from carriers with a tiny
+          2019 baseline whose later traffic dwarfs it. Bounded loosely to catch only
+          absurd values.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 3000
+              row_condition: "traffic_recovery_ratio is not null"

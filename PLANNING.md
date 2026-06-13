@@ -141,8 +141,8 @@ decisions and must be respected by any model built here:
 
 ## Plan (executable, dependency-ordered)
 
-The manual for `/implement`. Phases 1-3 done and committed (79/79 tests green in
-BigQuery). Phase 4 is next.
+The manual for `/implement`. Phases 1-4 done and committed (120 tests: 117 pass, 3
+by-design warns, 0 errors in BigQuery). Phase 5 (Delivery) is next.
 Hard constraints: BigQuery cost rules (partition + cluster every table,
 `maximum_bytes_billed` cap), conventions in [CONVENTIONS.md](CONVENTIONS.md), no
 service-account JSON committed to the repo.
@@ -187,14 +187,18 @@ pass), $1 billing budget, conventions and project skills. Remote: `github.com/jo
   `mart_route_risk` (9,000 rows), `mart_airline_performance` (53,700 rows). All pass
   tests. **79/79 total dbt tests green.**
 
-### Phase 4 — Quality
-4.1 Generic tests: PK `not_null`/`unique` on every model, `relationships` on FKs
-   (flight to airport/airline/date), `accepted_values` on weather event + pandemic phase.
-4.2 Singular tests (`tests/`): no landing before takeoff, every hub has a 2019 baseline,
-   no flight maps to a weather hour outside its `day`.
-4.3 dbt-expectations: row-count ranges, `expect_column_values_to_be_between` on durations
-   and traffic, distribution checks on key measures.
-   - Done when: `dbt build` (models + all tests) is fully green.
+### Phase 4 — Quality (DONE)
+- [x] 4.1 Generic tests: composite-key uniqueness on every grain (int + marts via
+  `dbt_utils.unique_combination_of_columns`), `relationships` FKs (hub/month/phase/weather
+  hard; airline + non-hub route endpoints `severity: warn` per the documented unresolved
+  realities), `accepted_values` on weather event + pandemic phase.
+- [x] 4.2 Singular tests (`tests/`): no landing before takeoff, every hub has a 2019
+  baseline, weather joined within one day of the flight (±1 day for midnight crossings).
+- [x] 4.3 dbt-expectations: per-model row-count ranges, `expect_column_values_to_be_between`
+  on durations/traffic/ratios, `expect_column_mean_to_be_between` on flight duration.
+- **120 tests total: 117 pass, 3 by-design warns (unresolved airline callsigns + route
+  endpoints absent from OurAirports), 0 errors.** Stale deployed `dim_date` (missing
+  `quarter_of_year`) found and rebuilt during this phase.
 
 ### Phase 5 — Delivery (CI/CD + dashboard)
 5.1 **BigQuery CI auth (the one human-in-the-loop point).**

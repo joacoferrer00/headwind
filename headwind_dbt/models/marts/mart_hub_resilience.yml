@@ -8,16 +8,28 @@ models:
       arrival at destination hub). Weather event is the classification at that hub for
       that departure or arrival hour. Answers BQ1-3: hub weather resilience, seasonality,
       and route risk indicators.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [hub_icao, flight_month, weather_event]
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 2500
+          max_value: 4000
     columns:
       - name: hub_icao
         description: ICAO code of the hub airport.
         tests:
           - not_null
+          - relationships:
+              to: ref('dim_airport')
+              field: airport_icao
 
       - name: flight_month
         description: First day of the month (partition key).
         tests:
           - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_day
 
       - name: weather_event
         description: Weather condition classification at this hub for this movement.
@@ -25,14 +37,25 @@ models:
           - not_null
           - accepted_values:
               values: [clear, windy, snow, fog, storm]
+          - relationships:
+              to: ref('dim_weather_event')
+              field: weather_event
 
       - name: total_movements
         description: Total flight movements (departures + arrivals) at this hub-month-event.
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 10000000
 
       - name: avg_flight_duration_minutes
         description: Mean flight duration in minutes for movements at this hub under this weather.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 3000
+              row_condition: "avg_flight_duration_minutes is not null"
 
       - name: stddev_flight_duration_minutes
         description: Standard deviation of flight duration; higher = more variable operations.

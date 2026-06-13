@@ -6,16 +6,28 @@ models:
       Per-hub per-month 2019 baseline traffic (departures + arrivals separately).
       Covers only the 20 hubs in seed_top_hubs. Used as the denominator for
       collapse-and-recovery ratios in mart_hub_recovery.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [hub_icao, flight_month]
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 200
+          max_value: 300
     columns:
       - name: hub_icao
         description: ICAO code of the hub airport.
         tests:
           - not_null
+          - relationships:
+              to: ref('dim_airport')
+              field: airport_icao
 
       - name: flight_month
         description: First day of the month (2019-01-01 through 2019-12-01).
         tests:
           - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: date_day
 
       - name: departure_count_2019
         description: Number of departures from this hub in this 2019 month.

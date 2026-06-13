@@ -9,26 +9,52 @@ models:
       (0 = no effect, 1 = complete shutdown on bad days).
       shock_sensitivity_index: relative monthly traffic drop during Jan-Jun 2020 vs 2019
       average.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [origin_icao, destination_icao]
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 7000
+          max_value: 12000
     columns:
       - name: origin_icao
         description: Departure airport ICAO.
         tests:
           - not_null
+          # warn-only: OpenSky carries some ICAO codes absent from OurAirports
+          # (the non-hub endpoint of a route may not resolve). Documented data reality.
+          - relationships:
+              to: ref('dim_airport')
+              field: airport_icao
+              config:
+                severity: warn
 
       - name: destination_icao
         description: Arrival airport ICAO.
         tests:
           - not_null
+          - relationships:
+              to: ref('dim_airport')
+              field: airport_icao
+              config:
+                severity: warn
 
       - name: total_flights_2019
         description: Total flights on this route in 2019.
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 12
+              max_value: 10000000
 
       - name: weather_sensitivity_index
         description: >
           (avg_clear_daily - avg_bad_daily) / avg_clear_daily. Null if no bad-weather days.
-          Higher = more sensitive to weather.
+          Higher = more sensitive to weather. Bounded above by 1 by construction.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: -100
+              max_value: 1
+              row_condition: "weather_sensitivity_index is not null"
 
       - name: shock_sensitivity_index
         description: >
