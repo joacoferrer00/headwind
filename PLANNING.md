@@ -208,7 +208,10 @@ pass), $1 billing budget, conventions and project skills. Remote: `github.com/jo
 - [x] 5.2 **GitHub Actions CI:** `.github/workflows/ci.yml` runs sqlfluff + `dbt build`/
   `dbt test` against `dbt_ci` on PR and manual dispatch (full build, ~15-25 GB/run).
   Proven green via dispatch; the formal PR check rides the next real PR (5.3/5.4).
-5.3 **dbt docs:** `dbt docs generate`, published to GitHub Pages (lineage DAG browsable).
+- [x] 5.3 **dbt docs:** `.github/workflows/pages.yml` generates dbt docs (`--target ci`,
+   WIF auth) and publishes to GitHub Pages at `/dbt-docs/` (root is a placeholder that 5.4
+   replaces with the dashboard). Repo made public for Pages. Live:
+   https://joacoferrer00.github.io/headwind/dbt-docs/
 5.4 **Evidence.dev dashboard:** pages built around the business questions, connected to
    the BQ marts, built and deployed to GitHub Pages / Netlify via Actions (reuses the 5.1
    secret). Done when: the site is live and renders the cross-stress headline.

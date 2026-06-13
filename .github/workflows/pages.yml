@@ -1,0 +1,76 @@
+name: Pages (dbt docs)
+
+# Generates the dbt docs site (lineage DAG, model + test docs, catalog) and publishes it
+# to GitHub Pages under /dbt-docs/. The site root is a placeholder that redirects there;
+# phase 5.4 replaces the root with the Evidence dashboard build. Auth to BigQuery is the
+# same Workload Identity Federation used by ci.yml (the catalog query needs warehouse
+# access).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent Pages deployment; do not cancel an in-progress one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DBT_PROFILES_DIR: ${{ github.workspace }}/ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: dbt deps
+        working-directory: headwind_dbt
+        run: dbt deps
+
+      - name: Generate dbt docs
+        working-directory: headwind_dbt
+        run: dbt docs generate --target ci
+
+      - name: Assemble Pages site
+        run: |
+          mkdir -p _site/dbt-docs
+          cp headwind_dbt/target/index.html _site/dbt-docs/
+          cp headwind_dbt/target/manifest.json _site/dbt-docs/
+          cp headwind_dbt/target/catalog.json _site/dbt-docs/
+          cp ci/pages-root.html _site/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
