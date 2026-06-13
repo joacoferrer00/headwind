@@ -217,7 +217,8 @@ pass), $1 billing budget, conventions and project skills. Remote: `github.com/jo
    (headline cross-stress scatter, weather resilience, COVID recovery, cross-stress
    detail). Built and deployed by `pages.yml` to the Pages root (`/headwind`), docs at
    `/dbt-docs/`. Headline finding: weather-resilience vs shock-resilience correlation
-   ~0.30 (the two resiliences are largely independent). Local build green.
+   ~0.30 (the two resiliences are largely independent). Live and verified:
+   https://joacoferrer00.github.io/headwind/
 
 ### Phase 6 — Polish (ship it)
 6.1 Replace the dbt starter `README.md` with the portfolio README: lead with the
