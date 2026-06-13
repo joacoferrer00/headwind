@@ -33,14 +33,17 @@ SQL; he steers the agent that writes it.
 
 ---
 
-## Current state (2026-06-12)
+## Current state (2026-06-13)
 
-Phases 1-3 fully built and committed. All models materialize in BigQuery (`dbt_dev`
-dataset). 79/79 dbt tests pass. SQLFluff violations resolved (AL03/RF02/RF04/LT05 fixed
-in the model files) and the pre-commit hook now lints via the dbt templater from the
-project venv, so the whole pipeline commits cleanly.
+Phases 1-4 done and committed; Phase 5 done through 5.2. All models materialize in
+BigQuery (`dbt_dev`) and the full pipeline rebuilds + tests green in CI against `dbt_ci`.
+120 dbt tests: 117 pass, 3 by-design warns (unresolved airline callsigns + route
+endpoints absent from OurAirports), 0 errors. GitHub Actions (`.github/workflows/ci.yml`)
+authenticates to BigQuery via Workload Identity Federation (SA `dbt-ci`, no JSON key) and
+runs `dbt build` on PR + manual dispatch.
 
-Next step: Phase 4 (Quality tests). See the plan in [PLANNING.md](PLANNING.md).
+Next step: Phase 5.3 (dbt docs to GitHub Pages) + 5.4 (Evidence dashboard). See
+[PLANNING.md](PLANNING.md).
 
 Full phase breakdown in [PLANNING.md](PLANNING.md) (the north for `/implement`).
 

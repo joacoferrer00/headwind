@@ -142,9 +142,10 @@ decisions and must be respected by any model built here:
 ## Plan (executable, dependency-ordered)
 
 The manual for `/implement`. Phases 1-4 done and committed (120 tests: 117 pass, 3
-by-design warns, 0 errors in BigQuery). Phase 5 in progress: 5.1 done and verified
-(green CI run), 5.2 workflow built and proven via manual dispatch. Next: 5.3 (dbt docs
-to Pages) + 5.4 (Evidence dashboard).
+by-design warns, 0 errors in BigQuery). Phase 5 CI/CD done through 5.2 (GitHub Actions
+builds the whole pipeline against `dbt_ci` via WIF, proven green). Next: 5.3 (dbt docs to
+Pages) + 5.4 (Evidence dashboard), then 6 (portfolio README), then 8 (onboarding doc for
+Joaquin, written last).
 Hard constraints: BigQuery cost rules (partition + cluster every table,
 `maximum_bytes_billed` cap), conventions in [CONVENTIONS.md](CONVENTIONS.md), no
 service-account JSON committed to the repo.
@@ -190,35 +191,23 @@ pass), $1 billing budget, conventions and project skills. Remote: `github.com/jo
   tests. **79/79 total dbt tests green.**
 
 ### Phase 4 — Quality (DONE)
-- [x] 4.1 Generic tests: composite-key uniqueness on every grain (int + marts via
-  `dbt_utils.unique_combination_of_columns`), `relationships` FKs (hub/month/phase/weather
-  hard; airline + non-hub route endpoints `severity: warn` per the documented unresolved
-  realities), `accepted_values` on weather event + pandemic phase.
-- [x] 4.2 Singular tests (`tests/`): no landing before takeoff, every hub has a 2019
-  baseline, weather joined within one day of the flight (±1 day for midnight crossings).
-- [x] 4.3 dbt-expectations: per-model row-count ranges, `expect_column_values_to_be_between`
-  on durations/traffic/ratios, `expect_column_mean_to_be_between` on flight duration.
-- **120 tests total: 117 pass, 3 by-design warns (unresolved airline callsigns + route
-  endpoints absent from OurAirports), 0 errors.** Stale deployed `dim_date` (missing
-  `quarter_of_year`) found and rebuilt during this phase.
+- [x] Generic + singular + dbt-expectations tests across staging, int, and marts:
+  composite-key uniqueness on every grain, FK `relationships` (airline + non-hub route
+  endpoints `severity: warn` for the documented unresolved keys), `accepted_values`,
+  3 singular tests (no landing before takeoff, every hub has a 2019 baseline, weather
+  joined within a day of the flight), and row-count/value/mean range checks.
+- **120 tests: 117 pass, 3 by-design warns (unresolved airline callsigns + route
+  endpoints absent from OurAirports), 0 errors.**
 
 ### Phase 5 — Delivery (CI/CD + dashboard)
-- [x] 5.1 **BigQuery CI auth (WIF, no key).** SA
-  `dbt-ci@headwind-497302.iam.gserviceaccount.com` with `bigquery.dataEditor` +
-  `bigquery.jobUser`. WIF pool `github` + OIDC provider `github-provider`
-  (condition: `repository == 'joacoferrer00/headwind'`), SA bound via
-  `iam.workloadIdentityUser` to the repo principalSet. Secrets
-  `GCP_WORKLOAD_IDENTITY_PROVIDER` + `GCP_SERVICE_ACCOUNT` set (no JSON). `ci` target
-  (dataset `dbt_ci`, 25 GB cap) in `~/.dbt/profiles.yml` and committed `ci/profiles.yml`.
-  `dbt debug --target ci` passes locally; green Actions run is the final verification.
-- [x] 5.2 **GitHub Actions CI:** `.github/workflows/ci.yml` runs sqlfluff, `dbt deps`,
-   `dbt build` + `dbt test` against `dbt_ci` (WIF auth) on PR + manual dispatch. Full
-   build per run (~15-25 GB scanned), chosen over changed-only/lint-only. Proven green
-   via manual dispatch (run 27475746805, 2m20s). The `pull_request` trigger is identical
-   wiring; the formal PR check is deferred to the next real PR (5.3/5.4) to avoid a
-   throwaway ~20 GB build.
-5.2 **GitHub Actions CI:** PR workflow runs sqlfluff, `dbt deps`, `dbt build` + `dbt test`
-   against `dbt_ci`. Done when: green check on a test PR.
+- [x] 5.1 **CI auth (WIF, no key):** SA `dbt-ci@headwind-497302.iam.gserviceaccount.com`
+  (`bigquery.dataEditor` + `jobUser`) impersonated from GitHub Actions via Workload
+  Identity Federation (pool `github`, provider scoped to `joacoferrer00/headwind`).
+  Secrets `GCP_WORKLOAD_IDENTITY_PROVIDER` + `GCP_SERVICE_ACCOUNT` (no JSON). `ci` target
+  writes to dataset `dbt_ci` (`~/.dbt/profiles.yml` + committed `ci/profiles.yml`).
+- [x] 5.2 **GitHub Actions CI:** `.github/workflows/ci.yml` runs sqlfluff + `dbt build`/
+  `dbt test` against `dbt_ci` on PR and manual dispatch (full build, ~15-25 GB/run).
+  Proven green via dispatch; the formal PR check rides the next real PR (5.3/5.4).
 5.3 **dbt docs:** `dbt docs generate`, published to GitHub Pages (lineage DAG browsable).
 5.4 **Evidence.dev dashboard:** pages built around the business questions, connected to
    the BQ marts, built and deployed to GitHub Pages / Netlify via Actions (reuses the 5.1
@@ -235,6 +224,27 @@ pass), $1 billing budget, conventions and project skills. Remote: `github.com/jo
 7.1 dbt semantic layer for the core metrics. 7.2 OWID stringency as a weighting source.
 7.3 SCD Type 2 on `dim_airport`. Each is independent and optional; skip cleanly if time
 runs short and leave it in the README "future work" list.
+
+### Phase 8 — Onboarding doc (LAST, after the project ships end to end)
+8.1 Write `EXPLANATION.md`: a plain-language brief that gets Joaquin up to speed on his
+   own portfolio piece, enough to speak to it (technically and commercially) without
+   re-studying it. He has not used dbt or BigQuery before, so explain plainly, no deep
+   dives. This is distinct from `README.md` (public "what is this + how to run it"); this
+   one is for Joaquin. Cover, in order:
+   - **What it is and why it matters (commercial):** the cross-stress question (which EU
+     hubs resist chronic weather stress vs the acute COVID shock, and whether resilience to
+     one predicts the other), and why that framing reads as a credible portfolio piece.
+   - **The stack and each tool's job:** GCS (raw file storage), BigQuery (the warehouse,
+     billed by bytes scanned, hence the cost rules), dbt (the SQL transformation + testing
+     + lineage layer that turns raw tables into tested data marts), Evidence.dev (the
+     dashboard), GitHub Actions + WIF (CI that rebuilds and tests the pipeline on every PR).
+   - **The architecture in one pass:** raw -> staging -> dims + intermediate -> marts ->
+     dashboard, and what each layer is for.
+   - **What was built and what it shows:** the four marts, the headline finding, and the
+     data-quality caveats (null endpoints, unresolved airline callsigns).
+   - **What it demonstrates about Joaquin:** end-to-end analytics engineering delivered by
+     orchestrating Claude Code, not hand-writing each model.
+   - Done when: Joaquin can read it in one sitting and explain the project to someone else.
 
 ---
 
