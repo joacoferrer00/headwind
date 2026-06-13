@@ -232,26 +232,12 @@ pass), $1 billing budget, conventions and project skills. Remote: `github.com/jo
 7.3 SCD Type 2 on `dim_airport`. Each is independent and optional; skip cleanly if time
 runs short and leave it in the README "future work" list.
 
-### Phase 8 — Onboarding doc (LAST, after the project ships end to end)
-8.1 Write `EXPLANATION.md`: a plain-language brief that gets Joaquin up to speed on his
-   own portfolio piece, enough to speak to it (technically and commercially) without
-   re-studying it. He has not used dbt or BigQuery before, so explain plainly, no deep
-   dives. This is distinct from `README.md` (public "what is this + how to run it"); this
-   one is for Joaquin. Cover, in order:
-   - **What it is and why it matters (commercial):** the cross-stress question (which EU
-     hubs resist chronic weather stress vs the acute COVID shock, and whether resilience to
-     one predicts the other), and why that framing reads as a credible portfolio piece.
-   - **The stack and each tool's job:** GCS (raw file storage), BigQuery (the warehouse,
-     billed by bytes scanned, hence the cost rules), dbt (the SQL transformation + testing
-     + lineage layer that turns raw tables into tested data marts), Evidence.dev (the
-     dashboard), GitHub Actions + WIF (CI that rebuilds and tests the pipeline on every PR).
-   - **The architecture in one pass:** raw -> staging -> dims + intermediate -> marts ->
-     dashboard, and what each layer is for.
-   - **What was built and what it shows:** the four marts, the headline finding, and the
-     data-quality caveats (null endpoints, unresolved airline callsigns).
-   - **What it demonstrates about Joaquin:** end-to-end analytics engineering delivered by
-     orchestrating Claude Code, not hand-writing each model.
-   - Done when: Joaquin can read it in one sitting and explain the project to someone else.
+### Phase 8 — Onboarding doc (DONE)
+- [x] 8.1 `EXPLANATION.md` at the repo root: plain-language briefing for Joaquin (no dbt/
+   BigQuery background assumed), covering what the project is and why it matters
+   commercially, each tool's job, the architecture in one pass, what was built and the
+   ~0.30 cross-stress finding with the coverage caveats, what it demonstrates about how he
+   works, and a talking-points section for speaking to it cold. Distinct from `README.md`.
 
 ---
 
