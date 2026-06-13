@@ -142,10 +142,10 @@ decisions and must be respected by any model built here:
 ## Plan (executable, dependency-ordered)
 
 The manual for `/implement`. Phases 1-4 done and committed (120 tests: 117 pass, 3
-by-design warns, 0 errors in BigQuery). Phase 5 CI/CD done through 5.2 (GitHub Actions
-builds the whole pipeline against `dbt_ci` via WIF, proven green). Next: 5.3 (dbt docs to
-Pages) + 5.4 (Evidence dashboard), then 6 (portfolio README), then 8 (onboarding doc for
-Joaquin, written last).
+by-design warns, 0 errors in BigQuery). Phase 5 (Delivery) complete: CI builds the
+pipeline against `dbt_ci` via WIF, dbt docs publish to Pages at `/dbt-docs/`, and the
+Evidence dashboard publishes to the Pages root. Next: 6 (portfolio README), then 8
+(onboarding doc for Joaquin, written last). Phase 7 stretch is optional.
 Hard constraints: BigQuery cost rules (partition + cluster every table,
 `maximum_bytes_billed` cap), conventions in [CONVENTIONS.md](CONVENTIONS.md), no
 service-account JSON committed to the repo.
@@ -212,9 +212,12 @@ pass), $1 billing budget, conventions and project skills. Remote: `github.com/jo
    WIF auth) and publishes to GitHub Pages at `/dbt-docs/` (root is a placeholder that 5.4
    replaces with the dashboard). Repo made public for Pages. Live:
    https://joacoferrer00.github.io/headwind/dbt-docs/
-5.4 **Evidence.dev dashboard:** pages built around the business questions, connected to
-   the BQ marts, built and deployed to GitHub Pages / Netlify via Actions (reuses the 5.1
-   secret). Done when: the site is live and renders the cross-stress headline.
+- [x] 5.4 **Evidence.dev dashboard:** project in `evidence/`, connected to the BigQuery
+   marts in `dbt_dev` via ADC (same WIF in CI). Pages around the 7 business questions
+   (headline cross-stress scatter, weather resilience, COVID recovery, cross-stress
+   detail). Built and deployed by `pages.yml` to the Pages root (`/headwind`), docs at
+   `/dbt-docs/`. Headline finding: weather-resilience vs shock-resilience correlation
+   ~0.30 (the two resiliences are largely independent). Local build green.
 
 ### Phase 6 — Polish (ship it)
 6.1 Replace the dbt starter `README.md` with the portfolio README: lead with the

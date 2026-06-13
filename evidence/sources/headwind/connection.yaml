@@ -1,0 +1,6 @@
+name: headwind
+type: bigquery
+options:
+  project_id: headwind-497302
+  location: EU
+  authenticator: gcloud-cli
