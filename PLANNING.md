@@ -123,7 +123,8 @@ decisions and must be respected by any model built here:
 
 **Notable intermediate models:**
 - `int_flights_with_weather` — the temporal-spatial join (flight × hourly weather at
-  origin and destination, ±30 min window). The technical centerpiece.
+  origin and destination, matched on the flight's first-seen hour at origin and
+  last-seen hour at destination). The technical centerpiece.
 - `int_traffic_baselines` — per-hub baseline traffic from 2019, used as the denominator
   for collapse-and-recovery metrics.
 

@@ -1,7 +1,7 @@
 """Pull Open-Meteo historical hourly weather for each top-20 hub, upload to GCS, load into BQ.
 
 One request per hub per year (4 years x 20 hubs = 80 requests).
-Parquet written to gs://headwind-497302-raw/openmeteo/dt=YYYY-MM-01/airport_icao.parquet
+Parquet written to gs://headwind-497302-raw/openmeteo/dt=YYYY-01-01/airport_icao.parquet
 Then bq load into headwind_raw.weather partitioned by obs_date (MONTH).
 """
 
