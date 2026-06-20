@@ -138,7 +138,7 @@ def main() -> None:
     log.info("Top hubs:")
     for i, row in enumerate(rows, 1):
         log.info(
-            "  %2d. %s (%s) %s — %s movements",
+            "  %2d. %s (%s) %s: %s movements",
             i,
             row.airport_icao,
             row.iata,
